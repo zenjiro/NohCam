@@ -70,7 +70,7 @@ NohCam/
 ### Phase 1 — 土台構築 (1〜2週間)
 
 #### 1-1. ビルド環境セットアップ
-- Visual Studio 2022 + CMake + vcpkg の構成
+- Visual Studio Community 2026 + CMake + vcpkg の構成
 - vcpkg.json に以下を追加
   - nlohmann-json    (設定ファイル読み書き)
   - spdlog           (ロギング)
