@@ -88,10 +88,6 @@ NohCam/
 - ImGui 統合: Win32 + DX11 バックエンド初期化完了
 
 **残作業**
-- vcpkg.json に以下を追加
-  - nlohmann-json    (設定ファイル読み書き)
-  - spdlog           (ロギング)
-  - directx-headers  (DX11ヘッダ)
 - MediaPipe は公式ビルド手順に従い静的ライブラリとしてビルド
 
 #### 1-2. Win32 ウィンドウ + DirectX 11 初期化
@@ -108,7 +104,7 @@ NohCam/
 #### 1-4. ビルド手順
 **依存パッケージインストール**
 ```bash
-# vcpkg で依存ライブラリをインストール
+# vcpkg で依存ライブラリをインストール (初回のみ)
 .\vcpkg\vcpkg.exe install --triplet x64-windows
 ```
 
@@ -121,8 +117,7 @@ $CMAKE_EXE = "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\
 # ビルドディレクトリ作成と設定
 & $CMAKE_EXE -B build -S . `
   -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-  -DVCPKG_TARGET_TRIPLET=x64-windows `
-  -A x64
+  -DVCPKG_TARGET_TRIPLET=x64-windows
 
 # ビルド実行 (Release モード)
 & $CMAKE_EXE --build build --config Release
