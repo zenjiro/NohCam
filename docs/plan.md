@@ -70,15 +70,24 @@ NohCam/
 ### Phase 1 — 土台構築 (1〜2週間)
 
 #### 1-1. ビルド環境セットアップ
-- Visual Studio Community 2026 + CMake + vcpkg の構成
-- uv で Python 3.11 をピン固定して開発環境を管理
-- MediaPipe のソースビルド用に Bazel/Bazelisk をインストール
+✅ **インストール済み環境**
+- Visual Studio Community 2026
+  - C++ によるデスクトップ開発ワークロード
+  - MSVC 19.50.35728
+- CMake 4.2.3
+- Git
+- Python 3.11.13 (uv 経由)
+- Bazelisk / Bazel 9.0.1
+- Cubism SDK for Native 5-r.5
+- vcpkg 2026-03-04
+- **GPU**: CPU推論で進める (CUDA不要)
+
+**残作業**
 - vcpkg.json に以下を追加
   - nlohmann-json    (設定ファイル読み書き)
   - spdlog           (ロギング)
   - directx-headers  (DX11ヘッダ)
 - MediaPipe は公式ビルド手順に従い静的ライブラリとしてビルド
-- Cubism SDK は公式ZIPを解凍して third_party/ に配置
 
 #### 1-2. Win32 ウィンドウ + DirectX 11 初期化
 - HWND 生成、WM_SIZE / WM_DESTROY ハンドリング
