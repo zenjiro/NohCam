@@ -73,7 +73,7 @@ NohCam/
 ✅ **インストール済み環境**
 - Visual Studio Community 2026
   - C++ によるデスクトップ開発ワークロード
-  - MSVC 19.50.35728
+  - MSVC 19.50.35728 (cl.exe: C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\bin\Hostx86\x86\cl.exe)
 - CMake 4.2.3
 - Git
 - Python 3.11.13 (uv 経由)
