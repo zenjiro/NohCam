@@ -109,7 +109,10 @@ NohCam/
 **CMake ビルド**
 ```bash
 # ビルドディレクトリ作成と設定
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -B build -S . `
+  -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows `
+  -A x64
 
 # ビルド実行 (Release モード)
 cmake --build build --config Release
