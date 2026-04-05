@@ -102,40 +102,10 @@ NohCam/
 - プレビューウィンドウにそのまま表示して動作確認
 
 #### 1-4. ビルド手順
-**依存パッケージインストール**
-```bash
-# vcpkg で依存ライブラリをインストール (初回のみ)
-.\vcpkg\vcpkg.exe install --triplet x64-windows
-```
-
-**CMake ビルド**
-```bash
-# CMake は PATH に含まれていないため、フルパスを使用
-# Visual Studio Community 2026 の場合:
-$CMAKE_EXE = "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
-
-# ビルドディレクトリ作成と設定 (約6秒)
-& $CMAKE_EXE -B build -S . `
-  -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-  -DVCPKG_TARGET_TRIPLET=x64-windows
-
-# ビルド実行 (Release モード、約3.5秒)
-& $CMAKE_EXE --build build --config Release
-```
-
-**実行**
-```bash
-# ビルド成果物実行
-.\build\Release\NohCam.exe
-```
-
-**既知の問題**
-- Cubism SDK の CMakeLists.txt で `add_subdirectory` エラーが発生する場合
-  - CubismSdkForNative-5-r.5/Framework/src/Rendering/CMakeLists.txt:14
-  - SDK の CMake 設定を修正する必要がある可能性
-- ImGui の Win32 バックエンド関数が宣言されていない場合
-  - `ImGui_ImplWin32_WndProcHandler` を使用する前に前方宣言が必要
-  - `extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);`
+✅ **完了**: ビルド手順確立
+- vcpkg 依存関係インストール手順
+- CMake 設定・ビルド手順 (約10秒)
+- 実行方法
 
 
 ---
@@ -305,7 +275,7 @@ DLL側 (VirtualCamPin)
 
 ## 開発順序まとめ
 
-Phase 1 → ウィンドウ + DX11 + カメラ入力が動く
+Phase 1 → ウィンドウ + DX11 + カメラ入力が動く (進行中: ウィンドウ+DX11完了、カメラ入力実装中)
 Phase 2 → 顔・手トラッキング結果がデバッグ表示される
 Phase 3 → アバターが顔の動きに追従する  ← ここで最初の達成感
 Phase 4 → Zoomで自分のアバターが映る    ← ここで実用になる
