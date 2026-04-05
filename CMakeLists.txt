@@ -80,7 +80,8 @@ if(NOHCAM_ENABLE_CUBISM_FRAMEWORK)
 
     if(EXISTS "${NOHCAM_CUBISM_FRAMEWORK_DIR}/CMakeLists.txt" AND EXISTS "${NOHCAM_CUBISM_CORE_INCLUDE_DIR}/Live2DCubismCore.h")
         set(RENDER_INCLUDE_PATH "${NOHCAM_CUBISM_CORE_INCLUDE_DIR}")
-        set(FRAMEWORK_DEFINITIOINS "")
+        set(FRAMEWORK_DEFINITIONS "")
+        set(FRAMEWORK_SOURCE D3D11)
         add_subdirectory("${NOHCAM_CUBISM_FRAMEWORK_DIR}" "${CMAKE_BINARY_DIR}/cubism-framework")
 
         target_include_directories(NohCam

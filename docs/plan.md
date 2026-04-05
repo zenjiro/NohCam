@@ -82,6 +82,11 @@ NohCam/
 - vcpkg 2026-03-04
 - **GPU**: CPU推論で進める (CUDA不要)
 
+✅ **ビルド成功**: NohCam.exe 生成完了 (2026年4月5日)
+- CMake 設定: 成功 (FRAMEWORK_SOURCE=D3D11 修正)
+- Cubism Framework: 静的ライブラリ (Framework.lib) ビルド成功
+- ImGui 統合: Win32 + DX11 バックエンド初期化完了
+
 **残作業**
 - vcpkg.json に以下を追加
   - nlohmann-json    (設定ファイル読み書き)
@@ -90,9 +95,10 @@ NohCam/
 - MediaPipe は公式ビルド手順に従い静的ライブラリとしてビルド
 
 #### 1-2. Win32 ウィンドウ + DirectX 11 初期化
-- HWND 生成、WM_SIZE / WM_DESTROY ハンドリング
-- IDXGISwapChain1 + ID3D11Device + ID3D11DeviceContext の初期化
-- Dear ImGui を DX11 バックエンドで組み込み、Hello World UIを表示
+✅ **完了**: Win32 ウィンドウ + DirectX 11 + Dear ImGui 初期化
+- HWND 生成・WM_SIZE / WM_DESTROY ハンドリング実装
+- IDXGISwapChain1 + ID3D11Device + ID3D11DeviceContext 初期化
+- Dear ImGui を DX11 バックエンドで組み込み、Hello World UI 表示可能
 
 #### 1-3. Media Foundation でカメラ入力
 - IMFSourceReader を使いWebカメラからNV12/RGB32フレームを取得
@@ -108,14 +114,18 @@ NohCam/
 
 **CMake ビルド**
 ```bash
+# CMake は PATH に含まれていないため、フルパスを使用
+# Visual Studio Community 2026 の場合:
+$CMAKE_EXE = "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+
 # ビルドディレクトリ作成と設定
-cmake -B build -S . `
+& $CMAKE_EXE -B build -S . `
   -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
   -DVCPKG_TARGET_TRIPLET=x64-windows `
   -A x64
 
 # ビルド実行 (Release モード)
-cmake --build build --config Release
+& $CMAKE_EXE --build build --config Release
 ```
 
 **実行**
@@ -123,6 +133,14 @@ cmake --build build --config Release
 # ビルド成果物実行
 .\build\Release\NohCam.exe
 ```
+
+**既知の問題**
+- Cubism SDK の CMakeLists.txt で `add_subdirectory` エラーが発生する場合
+  - CubismSdkForNative-5-r.5/Framework/src/Rendering/CMakeLists.txt:14
+  - SDK の CMake 設定を修正する必要がある可能性
+- ImGui の Win32 バックエンド関数が宣言されていない場合
+  - `ImGui_ImplWin32_WndProcHandler` を使用する前に前方宣言が必要
+  - `extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);`
 
 
 ---
