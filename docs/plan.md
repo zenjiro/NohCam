@@ -71,6 +71,7 @@ NohCam/
 
 #### 1-1. ビルド環境セットアップ
 - Visual Studio Community 2026 + CMake + vcpkg の構成
+- uv で Python 3.11 をピン固定して開発環境を管理
 - MediaPipe のソースビルド用に Bazel/Bazelisk をインストール
 - vcpkg.json に以下を追加
   - nlohmann-json    (設定ファイル読み書き)
