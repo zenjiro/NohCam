@@ -114,12 +114,12 @@ NohCam/
 # Visual Studio Community 2026 の場合:
 $CMAKE_EXE = "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 
-# ビルドディレクトリ作成と設定
+# ビルドディレクトリ作成と設定 (約6秒)
 & $CMAKE_EXE -B build -S . `
   -DCMAKE_TOOLCHAIN_FILE="$PWD\vcpkg\scripts\buildsystems\vcpkg.cmake" `
   -DVCPKG_TARGET_TRIPLET=x64-windows
 
-# ビルド実行 (Release モード)
+# ビルド実行 (Release モード、約3.5秒)
 & $CMAKE_EXE --build build --config Release
 ```
 
