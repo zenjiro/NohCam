@@ -99,6 +99,28 @@ NohCam/
 - 取得フレームを ID3D11Texture2D にアップロード
 - プレビューウィンドウにそのまま表示して動作確認
 
+#### 1-4. ビルド手順
+**依存パッケージインストール**
+```bash
+# vcpkg で依存ライブラリをインストール
+.\vcpkg\vcpkg.exe install --triplet x64-windows
+```
+
+**CMake ビルド**
+```bash
+# ビルドディレクトリ作成と設定
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+
+# ビルド実行 (Release モード)
+cmake --build build --config Release
+```
+
+**実行**
+```bash
+# ビルド成果物実行
+.\build\Release\NohCam.exe
+```
+
 
 ---
 
