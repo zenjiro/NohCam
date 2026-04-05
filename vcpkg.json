@@ -1,0 +1,20 @@
+{
+  "name": "nohcam",
+  "version-string": "0.1.0",
+  "description": "NohCam Windows desktop application bootstrap.",
+  "license": "Apache-2.0",
+  "builtin-baseline": "77df67cfff9c12ccfdb52284e07c87c75092f723",
+  "dependencies": [
+    {
+      "name": "imgui",
+      "features": [
+        "dx11-binding",
+        "win32-binding"
+      ]
+    },
+    "nlohmann-json",
+    "spdlog",
+    "glm",
+    "directx-headers"
+  ]
+}
