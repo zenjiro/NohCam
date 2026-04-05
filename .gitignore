@@ -1,3 +1,4 @@
 .python-version
 vcpkg/
+vcpkg_installed/
 CubismSdkForNative*/
