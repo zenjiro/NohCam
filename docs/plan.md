@@ -43,6 +43,9 @@ NohCam/
 │   │   ├── OnnxSession.h/.cpp        # ONNX Runtime セッション管理
 │   │   └── TrackingResult.h          # トラッキング結果の共通データ構造体
 │   │
+│   ├── tools/
+│   │   └── OnnxSmokeTest.cpp         # ONNX Runtime / DirectML 動作確認用スモークテスト
+│   │
 │   ├── avatar/
 │   │   ├── Live2DManager.h/.cpp      # Cubism SDK 初期化・モデル管理
 │   │   ├── AvatarModel.h/.cpp        # モデルのロード・パラメータ更新
@@ -132,12 +135,13 @@ NohCam/
 
 ### Phase 2 — トラッキング (2〜3週間)
 
-- [ ] 2-1. ONNX Runtime 統合
+- [x] 2-1. ONNX Runtime 統合
 
 - ONNX Runtime C++ API を導入
 - Windows では DirectML Execution Provider を優先
 - DirectML が利用できない場合は CPU Execution Provider へフォールバック
 - セッション初期化とモデルロードを `OnnxSession` に集約
+- `NohCamOnnxSmokeTest` でモデルロードと単発推論を確認できるようにする
 
 - [ ] 2-2. 顔トラッキング
 

@@ -114,6 +114,51 @@ set(NOHCAM_HEADERS
     src/ui/MainWindow.h
 )
 
+set(NOHCAM_TRACKING_SOURCES
+    src/tracking/OnnxSession.cpp
+)
+
+set(NOHCAM_TRACKING_HEADERS
+    src/tracking/OnnxSession.h
+)
+
+if(TARGET nohcam_onnxruntime)
+    add_library(nohcam_tracking STATIC
+        ${NOHCAM_TRACKING_SOURCES}
+        ${NOHCAM_TRACKING_HEADERS}
+    )
+
+    target_include_directories(nohcam_tracking
+        PUBLIC
+            "${CMAKE_SOURCE_DIR}/src"
+    )
+
+    target_compile_definitions(nohcam_tracking
+        PUBLIC
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            UNICODE
+            _UNICODE
+            NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
+            NOHCAM_HAS_ONNXRUNTIME=1
+    )
+
+    target_compile_options(nohcam_tracking
+        PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+    )
+
+    target_link_libraries(nohcam_tracking
+        PUBLIC
+            nohcam_onnxruntime
+    )
+
+    if(NOHCAM_ENABLE_DIRECTML AND NOHCAM_DIRECTML_LIBRARY)
+        target_link_libraries(nohcam_tracking PUBLIC "${NOHCAM_DIRECTML_LIBRARY}")
+        target_compile_definitions(nohcam_tracking PUBLIC NOHCAM_HAS_DIRECTML=1)
+    endif()
+endif()
+
 add_executable(NohCam WIN32
     ${NOHCAM_SOURCES}
     ${NOHCAM_HEADERS}
@@ -155,7 +200,7 @@ target_link_libraries(NohCam
 )
 
 if(TARGET nohcam_onnxruntime)
-    target_link_libraries(NohCam PRIVATE nohcam_onnxruntime)
+    target_link_libraries(NohCam PRIVATE nohcam_tracking)
     target_compile_definitions(NohCam PRIVATE NOHCAM_HAS_ONNXRUNTIME=1)
     if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
         add_custom_command(TARGET NohCam POST_BUILD
@@ -168,8 +213,46 @@ if(TARGET nohcam_onnxruntime)
 endif()
 
 if(NOHCAM_ENABLE_DIRECTML AND NOHCAM_DIRECTML_LIBRARY)
-    target_link_libraries(NohCam PRIVATE "${NOHCAM_DIRECTML_LIBRARY}")
     target_compile_definitions(NohCam PRIVATE NOHCAM_HAS_DIRECTML=1)
+endif()
+
+if(TARGET nohcam_tracking)
+    add_executable(NohCamOnnxSmokeTest
+        src/tools/OnnxSmokeTest.cpp
+    )
+
+    target_include_directories(NohCamOnnxSmokeTest
+        PRIVATE
+            "${CMAKE_SOURCE_DIR}/src"
+    )
+
+    target_compile_definitions(NohCamOnnxSmokeTest
+        PRIVATE
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            UNICODE
+            _UNICODE
+            NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
+    )
+
+    target_compile_options(NohCamOnnxSmokeTest
+        PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+    )
+
+    target_link_libraries(NohCamOnnxSmokeTest
+        PRIVATE
+            nohcam_tracking
+    )
+
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET NohCamOnnxSmokeTest POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:NohCamOnnxSmokeTest>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
 endif()
 
 if(NOHCAM_ENABLE_CUBISM_FRAMEWORK)
