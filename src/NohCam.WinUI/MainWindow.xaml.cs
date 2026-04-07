@@ -52,23 +52,19 @@ public sealed partial class MainWindow : Window
     private async void OnActivated(object sender, WindowActivatedEventArgs args)
     {
         Activated -= OnActivated;
-        
-        // Initialize bridge in a background task
-        await Task.Run(() => {
-            try {
-                bool success = FaceTracker_Initialize();
-                var errorBuilder = new System.Text.StringBuilder(1024);
-                FaceTracker_GetInitError(errorBuilder, 1024);
-                var error = errorBuilder.ToString();
-                _ = DispatcherQueue.TryEnqueue(() => {
-                    StatusTextBlock.Text = $"Tracker Init: {(success ? "OK" : "FAILED")} {error}";
-                });
-            } catch (Exception ex) {
-                _ = DispatcherQueue.TryEnqueue(() => {
-                    StatusTextBlock.Text = $"Bridge Init Failed: {ex.Message}";
-                });
-            }
-        });
+
+        StatusTextBlock.Text = "Initializing tracker...";
+
+        try {
+            StatusTextBlock.Text = "Calling Initialize...";
+            bool success = FaceTracker_Initialize();
+            var errorBuilder = new System.Text.StringBuilder(1024);
+            FaceTracker_GetInitError(errorBuilder, 1024);
+            var error = errorBuilder.ToString();
+            StatusTextBlock.Text = $"Tracker Init: {(success ? "OK" : "FAILED")} {error}";
+        } catch (Exception ex) {
+            StatusTextBlock.Text = $"Tracker Init Exception: {ex}";
+        }
 
         await StartPreviewAsync();
     }
@@ -135,7 +131,6 @@ public sealed partial class MainWindow : Window
             PreviewPlaceholderTextBlock.Visibility = Visibility.Collapsed;
             _mediaPlayer.Play();
 
-            // Setup Frame Reader for tracking
             _frameReader = await _mediaCapture.CreateFrameReaderAsync(frameSource, MediaEncodingSubtypes.Bgra8);
             _frameReader.FrameArrived += FrameReader_FrameArrived;
             await _frameReader.StartAsync();
@@ -184,7 +179,6 @@ public sealed partial class MainWindow : Window
 
             if (success && _frameCount++ % 30 == 0) {
                 _ = DispatcherQueue.TryEnqueue(() => {
-                    PreviewStateTextBlock.Text = $"Frame: {bitmap.PixelWidth}x{bitmap.PixelHeight} (cap={success}) Detected={detected}";
                     FaceDetectedTextBlock.Text = $"Detected: {(detected ? "Yes" : "No")}";
                     if (detected) {
                         FaceYawTextBlock.Text = $"Yaw: {yaw:F2}";

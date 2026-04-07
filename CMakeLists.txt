@@ -32,6 +32,9 @@ set(NOHCAM_ONNXRUNTIME_ROOT
     "Path to the unpacked prebuilt ONNX Runtime distribution."
 )
 
+# Find vcpkg packages
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/vcpkg/installed/x64-windows")
+
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -44,6 +47,7 @@ if(NOHCAM_ENABLE_ONNXRUNTIME)
         PATH_SUFFIXES
             include
             build/native/include
+            include/winml
     )
 
     find_library(NOHCAM_ONNXRUNTIME_LIBRARY
@@ -55,6 +59,7 @@ if(NOHCAM_ENABLE_ONNXRUNTIME)
             build/native/lib
             build/native/lib/x64
             runtimes/win-x64/native
+            runtimes-framework/win-x64/native
     )
 
     if(NOHCAM_ONNXRUNTIME_INCLUDE_DIR AND NOHCAM_ONNXRUNTIME_LIBRARY)

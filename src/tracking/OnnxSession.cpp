@@ -58,10 +58,7 @@ bool OnnxSession::LoadModel(const std::wstring& model_path, std::string* error_m
         return false;
     }
 
-    if (TryLoadWithDirectMl(model_path, error_message)) {
-        return true;
-    }
-
+    // Skip DirectML for now - use CPU only to avoid crashes
     metadata_.used_cpu_fallback = true;
     return LoadWithCpu(model_path, error_message);
 }

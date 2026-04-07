@@ -3,7 +3,27 @@
 #include <mutex>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <Windows.h>
+
+static bool SetDllDirectoryToModulePath() {
+    HMODULE hModule = nullptr;
+    if (GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            (LPCWSTR)&SetDllDirectoryToModulePath,
+            &hModule)) {
+        wchar_t path[MAX_PATH];
+        if (GetModuleFileNameW(hModule, path, MAX_PATH) > 0) {
+            wchar_t* slash = wcsrchr(path, L'\\');
+            if (slash) {
+                *slash = L'\0';
+                SetDllDirectoryW(path);
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 #ifdef _WIN32
 #define EXPORT extern "C" __declspec(dllexport)
@@ -18,16 +38,24 @@ namespace {
 }
 
 EXPORT bool FaceTracker_Initialize() {
+    SetDllDirectoryToModulePath();
+    
+    std::ofstream log("D:\\kumano\\github\\NohCam\\face_debug.log", std::ios::trunc);
+    log << "FaceTracker_Initialize called" << std::endl;
+    log.close();
+    
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     if (!g_face_tracker) {
         g_face_tracker = std::make_unique<nohcam::FaceTracker>();
     }
+    g_init_error.clear();
     bool success = g_face_tracker->Initialize(&g_init_error);
-    OutputDebugStringA(("FaceTracker_Initialize: " + std::string(success ? "OK" : "FAILED") + "\n").c_str());
-    if (!g_init_error.empty()) {
-        OutputDebugStringA(("FaceTracker_Initialize error: " + g_init_error + "\n").c_str());
-    }
-    OutputDebugStringA(("Model dir: " + std::string(NOHCAM_ONNX_MODEL_DIR ? (const char*)NOHCAM_ONNX_MODEL_DIR : "null") + "\n").c_str());
+    
+    std::ofstream log2("D:\\kumano\\github\\NohCam\\face_debug.log", std::ios::app);
+    log2 << "Initialize result: " << (success ? "OK" : "FAILED") << std::endl;
+    log2 << "Error: " << g_init_error << std::endl;
+    log2.close();
+    
     return success;
 }
 
@@ -61,6 +89,32 @@ EXPORT bool FaceTracker_Track(
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     if (!g_face_tracker || !g_face_tracker->IsInitialized()) {
         return false;
+    }
+
+    // Debug: check if there's any pixel data
+    static int frame_count = 0;
+    if (stride > 0 && width > 0 && height > 0 && ++frame_count % 60 == 0) {
+        // Calculate average brightness of center region
+        int center_x = width / 4;
+        int center_y = height / 4;
+        int sample_w = width / 2;
+        int sample_h = height / 2;
+        float sum = 0;
+        int count = 0;
+        for (int y = center_y; y < center_y + sample_h && y < (int)height; y += 10) {
+            for (int x = center_x; x < center_x + sample_w && x < (int)width; x += 10) {
+                std::size_t offset = static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x) * 4;
+                if (offset + 2 < static_cast<std::size_t>(stride) * height) {
+                    sum += pixels[offset] + pixels[offset + 1] + pixels[offset + 2];
+                    count++;
+                }
+            }
+        }
+        float avg = count > 0 ? sum / (count * 3) : 0;
+        
+        std::ofstream log("D:\\kumano\\github\\NohCam\\face_debug.log", std::ios::app);
+        log << "Frame " << width << "x" << height << " avg brightness: " << avg << " detected=" << *detected << std::endl;
+        log.close();
     }
 
     nohcam::CameraCapture::CaptureFrame frame;
