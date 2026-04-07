@@ -4,11 +4,10 @@
 
 - **本線は GUI 非依存** にする
   - Webカメラ入力 → トラッキング → Live2D反映 → 仮想カメラ出力 を独立した処理パイプラインとして構築する
+- **トラッキングは ONNX Runtime C++ で実装** する
+  - 顔・手ランドマーク推論は ONNX Runtime を用い、Windows では DirectML による GPU 加速を優先する
 - **GUI は確認と設定に限定** する
-  - リアルタイム描画は必須ではなく、低FPS・低解像度の確認用プレビューで十分
-- **プレビューは間引き表示** とする
-  - 例: 320x180 〜 640x360, 5〜15fps
-  - 仮想カメラ本線のフレームレートや解像度に GUI を引きずられない設計を優先する
+  - 高FPSのリアルタイム描画は必須ではなく、低FPS・低解像度の確認用プレビューで十分
 - **本番UIは WinUI 3 を採用** する
   - ユーザー向け UI は WinUI 3 で構築する
 
@@ -16,7 +15,7 @@
 
 ## ディレクトリ構成
 
-```
+```text
 NohCam/
 ├── CMakeLists.txt
 ├── vcpkg.json                        # 依存パッケージ定義
@@ -38,9 +37,10 @@ NohCam/
 │   │   └── PreviewTap.h/.cpp         # 確認用プレビューへの間引き出力
 │   │
 │   ├── tracking/
-│   │   ├── Tracker.h/.cpp            # MediaPipe の統括ラッパー
-│   │   ├── FaceTracker.h/.cpp        # 顔ランドマーク・向き・Blendshape
+│   │   ├── Tracker.h/.cpp            # ONNX Runtime 統括ラッパー
+│   │   ├── FaceTracker.h/.cpp        # 顔ランドマーク・Blendshape・頭部姿勢
 │   │   ├── HandTracker.h/.cpp        # 手のランドマーク
+│   │   ├── OnnxSession.h/.cpp        # ONNX Runtime セッション管理
 │   │   └── TrackingResult.h          # トラッキング結果の共通データ構造体
 │   │
 │   ├── avatar/
@@ -55,7 +55,7 @@ NohCam/
 │   │
 │   ├── virtualcam/
 │   │   ├── VirtualCamFilter.h/.cpp   # DirectShow フィルタ本体 (COM実装)
-│   │   ├── VirtualCamPin.h/.cpp      # 出力ピン (IPin / IMemInputPin 実装)
+│   │   ├── VirtualCamPin.h/.cpp      # 出力ピン
 │   │   ├── VirtualCamServer.h/.cpp   # 共有メモリ経由でフレームを渡す仕組み
 │   │   └── Register.cpp              # DLL登録用 DllRegisterServer / DllUnregisterServer
 │   │
@@ -69,15 +69,11 @@ NohCam/
 │           ├── AvatarPanel.h/.cpp    # モデルファイル選択・パーツ設定
 │           └── CameraPanel.h/.cpp    # カメラデバイス選択・入力設定
 │
-├── driver/                           # DirectShow Filter DLL (別ビルドターゲット)
-│   ├── CMakeLists.txt
-│   └── NohCamVirtualCamera.def       # DLLエクスポート定義
-│
 ├── assets/
-│   └── models/                       # デフォルトのLive2Dモデル一式
+│   ├── models/                       # デフォルトのLive2Dモデル一式
+│   └── onnx/                         # 顔・手トラッキング用 ONNX モデル
 │
 └── third_party/
-    ├── mediapipe/
     └── CubismSdkForNative/
 ```
 
@@ -96,16 +92,15 @@ NohCam/
 - CMake 4.2.3
 - Git
 - Python 3.11.13 (uv 経由)
-- Bazelisk / Bazel 9.0.1
 - Cubism SDK for Native 5-r.5
 - vcpkg 2026-03-04
-- GPU は当面 CPU 推論で進める
 - CMake 設定成功
 - Cubism Framework 静的ライブラリのビルド成功
 - Win32 + DX11 のビルド確認済み
 
 残作業:
-- MediaPipe を公式ビルド手順に従い静的ライブラリとしてビルド
+- ONNX Runtime / DirectML を依存関係へ追加
+- ONNX モデル配置ルールを確定
 
 #### 1-2. Win32 ウィンドウ + DirectX 11 初期化
 `✅ 完了`
@@ -135,32 +130,39 @@ NohCam/
 
 ### Phase 2 — トラッキング (2〜3週間)
 
-#### 2-1. MediaPipe 顔ランドマーク
+#### 2-1. ONNX Runtime 統合
 `⚪ 未着手`
 
-- FaceLandmarker タスクAPIを使用
+- ONNX Runtime C++ API を導入
+- Windows では DirectML Execution Provider を優先
+- DirectML が利用できない場合は CPU Execution Provider へフォールバック
+- セッション初期化とモデルロードを `OnnxSession` に集約
+
+#### 2-2. 顔トラッキング
+`⚪ 未着手`
+
+- 顔ランドマーク用 ONNX モデルをロード
 - 468点ランドマーク取得
-- 52種の Blendshape 係数取得
-- `facial_transformation_matrix` で顔の6DoF姿勢取得
-  - Yaw
-  - Pitch
-  - Roll
+- Blendshape 係数取得
+- 頭部姿勢に必要な特徴量を算出し `TrackingResult` に格納
 
-#### 2-2. MediaPipe 手ランドマーク
+#### 2-3. 手トラッキング
 `⚪ 未着手`
 
-- HandLandmarker タスクAPIを使用
+- 手ランドマーク用 ONNX モデルをロード
 - 左右各21点のランドマーク取得
 - 手首・指の関節角度を算出して `TrackingResult` に格納
 
-#### 2-3. TrackingResult 構造体設計
+#### 2-4. TrackingResult 構造体設計
 `⚪ 未着手`
 
 ```cpp
 struct FaceResult {
-    float yaw, pitch, roll;            // 顔の向き (ラジアン)
-    float x, y;                        // 顔の位置 (正規化)
-    std::array<float, 52> blendshapes; // 表情係数
+    bool detected;
+    float yaw, pitch, roll;
+    float x, y;
+    std::array<glm::vec3, 468> landmarks;
+    std::vector<float> blendshapes;
 };
 
 struct HandResult {
@@ -176,13 +178,15 @@ struct TrackingResult {
 };
 ```
 
-#### 2-4. スレッド設計
+#### 2-5. スレッド設計
 `⚪ 未着手`
 
 ```text
 [カメラスレッド]  Media Foundation → FrameBuffer
 ↓
-[処理本線]  Tracking / Avatar / VirtualCam 用データ更新
+[トラッキングスレッド]  ONNX Runtime 推論 → TrackingResult
+↓
+[アバター処理本線]  Live2D パラメータ更新
 ↓
 [仮想カメラ出力]  安定したフレーム供給
 
@@ -212,17 +216,14 @@ struct TrackingResult {
 
 TrackingResult の各値を Cubism のパラメータIDにマッピングする変換層
 
-| TrackingResult              | Cubism パラメータID           | 変換処理             |
-|----------------------------|------------------------------|----------------------|
-| face.yaw                   | ParamAngleX                  | ラジアン→[-30, 30]  |
-| face.pitch                 | ParamAngleY                  | ラジアン→[-30, 30]  |
-| face.roll                  | ParamAngleZ                  | ラジアン→[-30, 30]  |
-| face.x, face.y             | ParamBodyAngleX / BodyAngleY | 顔位置→体の揺れ     |
-| blendshapes[eyeBlinkLeft]  | ParamEyeLOpen                | 反転・スケール       |
-| blendshapes[eyeBlinkRight] | ParamEyeROpen                | 反転・スケール       |
-| blendshapes[jawOpen]       | ParamMouthOpenY              | スケール             |
-| blendshapes[mouthSmileLeft]| ParamMouthForm               | 左右平均             |
-| handLandmarks              | ParamArmL / ParamArmR        | 独自計算             |
+| TrackingResult          | Cubism パラメータID            | 変換処理            |
+|------------------------|-------------------------------|---------------------|
+| face.yaw               | ParamAngleX                   | ラジアン→[-30, 30] |
+| face.pitch             | ParamAngleY                   | ラジアン→[-30, 30] |
+| face.roll              | ParamAngleZ                   | ラジアン→[-30, 30] |
+| face.x, face.y         | ParamBodyAngleX / BodyAngleY  | 顔位置→体の揺れ    |
+| face.blendshapes       | ParamEye / ParamMouth 系      | 個別マッピング      |
+| hand.landmarks         | ParamArmL / ParamArmR         | 独自計算            |
 
 - 各パラメータにスムージングをかけてぎこちなさを除去する
 
@@ -304,6 +305,7 @@ DLL側 (VirtualCamPin)
 - `config.json` に保存
   - カメラデバイスID
   - モデルファイルパス
+  - ONNX モデルパス
   - 各パラメータの感度・オフセット
   - 出力解像度・FPS
   - プレビュー有効/無効
@@ -318,7 +320,7 @@ DLL側 (VirtualCamPin)
 
 | 処理               | 目標          |
 |-------------------|---------------|
-| トラッキング推論   | < 10ms / frame (GPU推論) |
+| ONNX 推論         | < 10ms / frame (GPU時) |
 | Live2D 描画        | < 5ms / frame |
 | 仮想カメラ遅延     | < 100ms 総合  |
 | CPU使用率          | < 20%         |
@@ -327,7 +329,7 @@ DLL側 (VirtualCamPin)
 #### 最適化ポイント
 `⚪ 未着手`
 
-- MediaPipe を GPU デリゲート (CUDA / DirectML) で動かす
+- ONNX Runtime は DirectML を優先、CPU にフォールバック
 - トラッキングは 30fps で十分、GUIプレビューはさらに低頻度でよい
 - 共有メモリのゼロコピー化
 - GUIプレビュー用の縮小・間引き処理を本線から分離する
@@ -336,7 +338,8 @@ DLL側 (VirtualCamPin)
 `⚪ 未着手`
 
 - カメラ切断時の自動再接続
-- モデルファイル不正時のフォールバック表示
+- ONNX モデル不正時の明確なエラー表示
+- DirectML 初期化失敗時の CPU フォールバック
 - DirectShowフィルタ未登録時のガイドダイアログ
 - GUI停止時も仮想カメラ本線が継続すること
 
@@ -345,7 +348,7 @@ DLL側 (VirtualCamPin)
 ## 開発順序まとめ
 
 - Phase 1 → GUI非依存の入力パイプラインが動く
-- Phase 2 → 顔・手トラッキング結果が本線に反映される
+- Phase 2 → ONNX Runtime による顔・手トラッキングが本線に反映される
 - Phase 3 → アバターが顔の動きに追従し、仮想カメラ向けフレームを生成できる
 - Phase 4 → Zoomで自分のアバターが映る
 - Phase 5 → WinUI 3 ベースの設定UIが整い、他人に使わせられる
@@ -357,7 +360,8 @@ DLL側 (VirtualCamPin)
 
 | ライブラリ             | バージョン         | 取得方法              |
 |------------------------|--------------------|-----------------------|
-| MediaPipe              | 0.10.x             | GitHub ソースビルド   |
+| ONNX Runtime           | 1.x                | 公式配布 / vcpkg      |
+| DirectML               | Windows SDK / NuGet| Microsoft 公式手順    |
 | Cubism SDK for Native  | 5-r.1              | Live2D 公式サイト     |
 | WinUI 3                | Windows App SDK 1.x| NuGet / 公式手順      |
 | DirectX 11             | OS同梱             | Windows SDK           |
