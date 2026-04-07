@@ -12,7 +12,6 @@ namespace nohcam {
 
 class CameraCapture;
 class D3D11Renderer;
-class ImGuiLayer;
 class MainWindow;
 class PreviewTap;
 
@@ -34,7 +33,6 @@ private:
 
     std::unique_ptr<MainWindow> main_window_;
     std::unique_ptr<D3D11Renderer> renderer_;
-    std::unique_ptr<ImGuiLayer> imgui_layer_;
     std::unique_ptr<CameraCapture> camera_capture_;
     std::unique_ptr<PreviewTap> preview_tap_;
     std::unique_ptr<FaceTracker> face_tracker_;

@@ -2,11 +2,7 @@
 
 #include "render/D3D11Renderer.h"
 
-#include <imgui_impl_win32.h>
 #include <spdlog/spdlog.h>
-
-// Forward declare ImGui WndProc handler
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace nohcam {
 
@@ -95,10 +91,6 @@ bool MainWindow::ProcessMessages() {
 }
 
 LRESULT CALLBACK MainWindow::WindowProc(HWND window_handle, UINT message, WPARAM wparam, LPARAM lparam) {
-    if (ImGui_ImplWin32_WndProcHandler(window_handle, message, wparam, lparam)) {
-        return TRUE;
-    }
-
     if (message == WM_NCCREATE) {
         const auto* create_struct = reinterpret_cast<CREATESTRUCTW*>(lparam);
         auto* self = static_cast<MainWindow*>(create_struct->lpCreateParams);

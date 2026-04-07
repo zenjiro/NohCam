@@ -8,7 +8,6 @@
 #include "render/D3D11Renderer.h"
 #include "tracking/FaceTracker.h"
 #include "tracking/TrackingResult.h"
-#include "ui/ImGuiLayer.h"
 #include "ui/MainWindow.h"
 
 #include <spdlog/spdlog.h>
@@ -29,7 +28,6 @@ bool Application::Initialize(int show_command) {
     try {
         main_window_ = std::make_unique<MainWindow>(instance_);
         renderer_ = std::make_unique<D3D11Renderer>();
-        imgui_layer_ = std::make_unique<ImGuiLayer>();
         camera_capture_ = std::make_unique<CameraCapture>();
         preview_tap_ = std::make_unique<PreviewTap>();
 
@@ -46,12 +44,6 @@ bool Application::Initialize(int show_command) {
         }
 
         main_window_->SetRenderer(renderer_.get());
-
-        if (!imgui_layer_->Initialize(main_window_->GetHandle(), renderer_->GetDevice(), renderer_->GetDeviceContext())) {
-            spdlog::error("Failed to initialize Dear ImGui.");
-            Shutdown();
-            return false;
-        }
 
         if (!camera_capture_->Initialize()) {
             spdlog::warn("Camera capture initialization failed; the app will continue without live input.");
@@ -85,7 +77,7 @@ int Application::Run() {
     while (main_window_ && main_window_->ProcessMessages()) {
         const CameraCapture::StateSnapshot camera_state =
             camera_capture_ ? camera_capture_->GetStateSnapshot() : CameraCapture::StateSnapshot{};
-        const bool preview_enabled = imgui_layer_ ? imgui_layer_->WantsPreview() : true;
+        const bool preview_enabled = true;
 
         if (preview_tap_) {
             preview_tap_->SetEnabled(preview_enabled);
@@ -119,17 +111,6 @@ int Application::Run() {
         }
 
         renderer_->BeginFrame();
-        imgui_layer_->BeginFrame();
-        imgui_layer_->RenderMainUi(
-            camera_state,
-            preview_state,
-            last_face_result_,
-            face_tracker_ ? face_tracker_->IsInitialized() : false,
-            face_tracker_ ? face_tracker_->GetInitializeError() : std::string(),
-            renderer_->GetPreviewShaderResourceView(),
-            renderer_->GetPreviewWidth(),
-            renderer_->GetPreviewHeight());
-        imgui_layer_->Render(renderer_->GetDeviceContext());
         renderer_->EndFrame();
     }
 
@@ -137,10 +118,6 @@ int Application::Run() {
 }
 
 void Application::Shutdown() {
-    if (imgui_layer_) {
-        imgui_layer_->Shutdown();
-    }
-
     if (camera_capture_) {
         camera_capture_->Shutdown();
     }
@@ -153,7 +130,6 @@ void Application::Shutdown() {
         main_window_->Destroy();
     }
 
-    imgui_layer_.reset();
     camera_capture_.reset();
     preview_tap_.reset();
     renderer_.reset();

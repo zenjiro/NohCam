@@ -32,7 +32,6 @@ set(NOHCAM_ONNXRUNTIME_ROOT
     "Path to the unpacked prebuilt ONNX Runtime distribution."
 )
 
-find_package(imgui CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -101,7 +100,6 @@ set(NOHCAM_SOURCES
     src/capture/CameraCapture.cpp
     src/pipeline/PreviewTap.cpp
     src/render/D3D11Renderer.cpp
-    src/ui/ImGuiLayer.cpp
     src/ui/MainWindow.cpp
 )
 
@@ -110,7 +108,6 @@ set(NOHCAM_HEADERS
     src/capture/CameraCapture.h
     src/pipeline/PreviewTap.h
     src/render/D3D11Renderer.h
-    src/ui/ImGuiLayer.h
     src/ui/MainWindow.h
 )
 
@@ -192,7 +189,6 @@ target_compile_options(NohCam
 
 target_link_libraries(NohCam
     PRIVATE
-        imgui::imgui
         nlohmann_json::nlohmann_json
         spdlog::spdlog_header_only
         glm::glm
