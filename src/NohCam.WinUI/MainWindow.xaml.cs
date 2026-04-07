@@ -23,6 +23,9 @@ public sealed partial class MainWindow : Window
     private static extern void FaceTracker_Shutdown();
 
     [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void FaceTracker_GetInitError(System.Text.StringBuilder errorBuffer, int bufferSize);
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
     private static extern bool FaceTracker_Track(
         IntPtr pixels,
         uint width,
@@ -53,7 +56,13 @@ public sealed partial class MainWindow : Window
         // Initialize bridge in a background task
         await Task.Run(() => {
             try {
-                FaceTracker_Initialize();
+                bool success = FaceTracker_Initialize();
+                var errorBuilder = new System.Text.StringBuilder(1024);
+                FaceTracker_GetInitError(errorBuilder, 1024);
+                var error = errorBuilder.ToString();
+                _ = DispatcherQueue.TryEnqueue(() => {
+                    StatusTextBlock.Text = $"Tracker Init: {(success ? "OK" : "FAILED")} {error}";
+                });
             } catch (Exception ex) {
                 _ = DispatcherQueue.TryEnqueue(() => {
                     StatusTextBlock.Text = $"Bridge Init Failed: {ex.Message}";
@@ -142,6 +151,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private int _frameCount = 0;
     private void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
         using var frame = sender.TryAcquireLatestFrame();
@@ -154,9 +164,9 @@ public sealed partial class MainWindow : Window
             using var reference = buffer.CreateReference();
             ((IMemoryBufferByteAccess)reference).GetBuffer(out byte* data, out uint capacity);
 
-            bool detected;
-            float yaw, pitch, roll, x, y;
-            int blendshapeCount;
+            bool detected = false;
+            float yaw = 0, pitch = 0, roll = 0, x = 0, y = 0;
+            int blendshapeCount = 0;
 
             bool success = FaceTracker_Track(
                 (IntPtr)data,
@@ -172,8 +182,9 @@ public sealed partial class MainWindow : Window
                 out blendshapeCount,
                 _blendshapes);
 
-            if (success) {
+            if (success && _frameCount++ % 30 == 0) {
                 _ = DispatcherQueue.TryEnqueue(() => {
+                    PreviewStateTextBlock.Text = $"Frame: {bitmap.PixelWidth}x{bitmap.PixelHeight} (cap={success}) Detected={detected}";
                     FaceDetectedTextBlock.Text = $"Detected: {(detected ? "Yes" : "No")}";
                     if (detected) {
                         FaceYawTextBlock.Text = $"Yaw: {yaw:F2}";

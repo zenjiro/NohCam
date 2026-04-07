@@ -165,6 +165,7 @@ if(TARGET nohcam_onnxruntime)
     add_library(nohcam_bridge SHARED
         src/tracking/FaceTrackerBridge.cpp
     )
+    target_compile_definitions(nohcam_bridge PRIVATE NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}")
     target_link_libraries(nohcam_bridge PRIVATE nohcam_tracking)
     
     if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)

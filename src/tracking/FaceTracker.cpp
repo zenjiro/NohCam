@@ -296,13 +296,13 @@ std::vector<float> FaceTracker::PreprocessFrame(
             } else {
                 const std::size_t pixel_index = static_cast<std::size_t>(y) * target_width + static_cast<std::size_t>(x);
                 if (target_channels >= 1) {
-                    result[static_cast<std::size_t>(0) * output_pixel_count + pixel_index] = ToNormalizedFloat(red);
+                    result[static_cast<std::size_t>(0) * output_pixel_count + pixel_index] = ToNormalizedFloat(blue);
                 }
                 if (target_channels >= 2) {
                     result[static_cast<std::size_t>(1) * output_pixel_count + pixel_index] = ToNormalizedFloat(green);
                 }
                 if (target_channels >= 3) {
-                    result[static_cast<std::size_t>(2) * output_pixel_count + pixel_index] = ToNormalizedFloat(blue);
+                    result[static_cast<std::size_t>(2) * output_pixel_count + pixel_index] = ToNormalizedFloat(red);
                 }
             }
         }

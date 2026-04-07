@@ -1,6 +1,9 @@
 #include "tracking/FaceTracker.h"
 #include <memory>
 #include <mutex>
+#include <cstring>
+#include <iostream>
+#include <Windows.h>
 
 #ifdef _WIN32
 #define EXPORT extern "C" __declspec(dllexport)
@@ -11,6 +14,7 @@
 namespace {
     std::unique_ptr<nohcam::FaceTracker> g_face_tracker;
     std::mutex g_face_tracker_mutex;
+    std::string g_init_error;
 }
 
 EXPORT bool FaceTracker_Initialize() {
@@ -18,12 +22,26 @@ EXPORT bool FaceTracker_Initialize() {
     if (!g_face_tracker) {
         g_face_tracker = std::make_unique<nohcam::FaceTracker>();
     }
-    return g_face_tracker->Initialize();
+    bool success = g_face_tracker->Initialize(&g_init_error);
+    OutputDebugStringA(("FaceTracker_Initialize: " + std::string(success ? "OK" : "FAILED") + "\n").c_str());
+    if (!g_init_error.empty()) {
+        OutputDebugStringA(("FaceTracker_Initialize error: " + g_init_error + "\n").c_str());
+    }
+    OutputDebugStringA(("Model dir: " + std::string(NOHCAM_ONNX_MODEL_DIR ? (const char*)NOHCAM_ONNX_MODEL_DIR : "null") + "\n").c_str());
+    return success;
 }
 
 EXPORT void FaceTracker_Shutdown() {
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     g_face_tracker.reset();
+    g_init_error.clear();
+}
+
+EXPORT void FaceTracker_GetInitError(char* error_buffer, int buffer_size) {
+    if (error_buffer && buffer_size > 0) {
+        strncpy_s(error_buffer, buffer_size, g_init_error.c_str(), buffer_size - 1);
+        error_buffer[buffer_size - 1] = '\0';
+    }
 }
 
 EXPORT bool FaceTracker_Track(
