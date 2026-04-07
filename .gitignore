@@ -9,3 +9,6 @@ assets/onnx/*.bin
 third_party/onnxruntime/**
 !third_party/onnxruntime/
 !third_party/onnxruntime/README.md
+src/NohCam.WinUI/bin/
+src/NohCam.WinUI/obj/
+imgui.ini

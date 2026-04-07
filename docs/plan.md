@@ -69,6 +69,11 @@ NohCam/
 │           ├── AvatarPanel.h/.cpp    # モデルファイル選択・パーツ設定
 │           └── CameraPanel.h/.cpp    # カメラデバイス選択・入力設定
 │
+├── src/NohCam.WinUI/                 # WinUI 3 確認用プレビュー / 設定UI プロトタイプ
+│   ├── NohCam.WinUI.csproj
+│   ├── App.xaml/.cs
+│   └── MainWindow.xaml/.cs
+│
 ├── assets/
 │   ├── models/                       # デフォルトのLive2Dモデル一式
 │   └── onnx/                         # 顔・手トラッキング用 ONNX モデル
@@ -285,6 +290,7 @@ DLL側 (VirtualCamPin)
 - 左側は確認用プレビューのみ
 - 低FPS・低解像度表示を前提とする
 - UIは状態確認と設定変更に専念し、本線の高頻度レンダリングは担わない
+- `src/NohCam.WinUI` に WinUI 3 の確認用プレビュー プロトタイプを作成し、カメラ映像が表示できることを確認する
 
 - [ ] 設定の永続化
 

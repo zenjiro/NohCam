@@ -1,0 +1,53 @@
+<Window
+    x:Class="NohCam.WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="NohCam">
+    <Grid Background="#F4F6F8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Background="#0F172A" Padding="20">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="NohCam" Foreground="White" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="#CBD5E1" Text="Starting camera..." />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Padding="20" ColumnSpacing="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Background="Black" CornerRadius="12" Padding="12">
+                <Grid>
+                    <MediaPlayerElement
+                        x:Name="PreviewElement"
+                        AreTransportControlsEnabled="False"
+                        Stretch="Uniform" />
+                    <TextBlock
+                        x:Name="PreviewPlaceholderTextBlock"
+                        Text="Preview surface"
+                        Foreground="White"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Camera Status" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" />
+                    <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" />
+                    <Button Content="Restart Preview" Click="RestartPreview_Click" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
