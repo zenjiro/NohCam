@@ -3,3 +3,6 @@ vcpkg/
 vcpkg_installed/
 CubismSdkForNative*/
 build/
+assets/onnx/*.onnx
+assets/onnx/*.ort
+assets/onnx/*.bin

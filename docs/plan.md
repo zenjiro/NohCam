@@ -84,7 +84,7 @@ NohCam/
 ### Phase 1 — 土台構築 (1〜2週間)
 
 #### 1-1. ビルド環境セットアップ
-`✅ 完了`
+`🟡 進行中`
 
 - Visual Studio Community 2026
   - C++ によるデスクトップ開発ワークロード
@@ -98,9 +98,9 @@ NohCam/
 - Cubism Framework 静的ライブラリのビルド成功
 - Win32 + DX11 のビルド確認済み
 
-残作業:
-- ONNX Runtime / DirectML を依存関係へ追加
+- ONNX Runtime を依存関係へ追加
 - ONNX モデル配置ルールを確定
+- DirectML ライブラリ連携を CMake に組み込む
 
 #### 1-2. Win32 ウィンドウ + DirectX 11 初期化
 `✅ 完了`
@@ -295,6 +295,8 @@ DLL側 (VirtualCamPin)
 └───────────────┴─────────────────────────────┘
 ```
 
+- DX11 の描画面は `SwapChainPanel` を第一候補として WinUI 3 に埋め込む
+- 設定 UI は WinUI 3 が描画し、Live2D アバターは DX11 スワップチェーン側で描画する
 - 左側は確認用プレビューのみ
 - 低FPS・低解像度表示を前提とする
 - UIは状態確認と設定変更に専念し、本線の高頻度レンダリングは担わない
