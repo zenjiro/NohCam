@@ -77,6 +77,9 @@ void ImGuiLayer::BeginFrame() {
 void ImGuiLayer::RenderMainUi(
     const CameraCapture::StateSnapshot& camera_state,
     const PreviewTap::StateSnapshot& preview_state,
+    const FaceResult& face_result,
+    bool face_tracker_ready,
+    const std::string& face_tracker_error,
     ID3D11ShaderResourceView* preview_shader_resource_view,
     std::uint32_t preview_width,
     std::uint32_t preview_height) {
@@ -141,6 +144,21 @@ void ImGuiLayer::RenderMainUi(
     ImGui::Text("Preview budget: %ux%u @ %u fps", preview_state.max_width, preview_state.max_height, preview_state.target_fps);
     ImGui::Text("Preview frames: %llu", static_cast<unsigned long long>(preview_state.preview_frame_count));
     ImGui::Text("Source frames seen by preview tap: %llu", static_cast<unsigned long long>(preview_state.source_frame_count));
+
+    ImGui::Separator();
+    ImGui::Text("Face tracker: %s", face_tracker_ready ? "ready" : "not ready");
+    if (!face_tracker_ready && !face_tracker_error.empty()) {
+        ImGui::TextWrapped("Face tracker warning: %s", face_tracker_error.c_str());
+    }
+
+    ImGui::Text("Face detected: %s", face_result.detected ? "yes" : "no");
+    if (face_result.detected) {
+        ImGui::Text("Head yaw: %.2f", face_result.yaw);
+        ImGui::Text("Head pitch: %.2f", face_result.pitch);
+        ImGui::Text("Head roll: %.2f", face_result.roll);
+        ImGui::Text("Face center (normalized): %.2f, %.2f", face_result.x, face_result.y);
+        ImGui::Text("Blendshape count: %zu", face_result.blendshapes.size());
+    }
 
     ImGui::Text("Frames received: %llu", static_cast<unsigned long long>(camera_state.frame_count));
     if (camera_state.frame_received) {

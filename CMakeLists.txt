@@ -115,11 +115,14 @@ set(NOHCAM_HEADERS
 )
 
 set(NOHCAM_TRACKING_SOURCES
+    src/tracking/FaceTracker.cpp
     src/tracking/OnnxSession.cpp
 )
 
 set(NOHCAM_TRACKING_HEADERS
+    src/tracking/FaceTracker.h
     src/tracking/OnnxSession.h
+    src/tracking/TrackingResult.h
 )
 
 if(TARGET nohcam_onnxruntime)
@@ -141,16 +144,19 @@ if(TARGET nohcam_onnxruntime)
             _UNICODE
             NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
             NOHCAM_HAS_ONNXRUNTIME=1
+            SPDLOG_COMPILED_LIB
     )
 
     target_compile_options(nohcam_tracking
         PRIVATE
-            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc /utf-8>
     )
 
     target_link_libraries(nohcam_tracking
         PUBLIC
             nohcam_onnxruntime
+            glm::glm
+            spdlog::spdlog
     )
 
     if(NOHCAM_ENABLE_DIRECTML AND NOHCAM_DIRECTML_LIBRARY)
@@ -176,18 +182,19 @@ target_compile_definitions(NohCam
         UNICODE
         _UNICODE
         NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
+        SPDLOG_COMPILED_LIB
 )
 
 target_compile_options(NohCam
     PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc /utf-8>
 )
 
 target_link_libraries(NohCam
     PRIVATE
         imgui::imgui
         nlohmann_json::nlohmann_json
-        spdlog::spdlog
+        spdlog::spdlog_header_only
         glm::glm
         Microsoft::DirectX-Headers
         d3d11

@@ -98,6 +98,8 @@ NohCam/
   - C++ によるデスクトップ開発ワークロード
   - MSVC 19.50.35728
 - CMake 4.2.3
+  - 実行ファイル: `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe`
+  - メモ: このパスは標準の PATH に含まれていないため、Developer PowerShell 以外で使う場合はフルパス指定が必要
 - Git
 - Python 3.11.13 (uv 経由)
 - Cubism SDK for Native 5-r.5
@@ -127,9 +129,25 @@ NohCam/
 
 - [x] 1-4. ビルド手順
 
-- vcpkg 依存関係インストール手順
-- CMake 設定・ビルド手順
-- 実行方法
+- **C++ バックエンドのビルド (NohCam.exe, OnnxSmokeTest.exe)**
+  ```powershell
+  # CMake 設定とビルド (Release 構成)
+  & 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' --build build --config Release
+  ```
+  ※ `vcpkg` による依存関係の解決は CMake 実行時に自動で行われます。
+
+- **WinUI 3 フロントエンドのビルド (NohCam.WinUI.exe)**
+  ```powershell
+  dotnet build src/NohCam.WinUI/NohCam.WinUI.csproj -c Release
+  ```
+
+- **実行方法**
+  - **メイン GUI (WinUI 3):**
+    `.\src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\NohCam.WinUI.exe`
+  - **バックエンド本体 (Win32):**
+    `.\build\Release\NohCam.exe`
+  - **ONNX 動作確認テスト:**
+    `.\build\Release\NohCamOnnxSmokeTest.exe`
 
 ---
 

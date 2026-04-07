@@ -6,6 +6,8 @@
 #include "capture/CameraCapture.h"
 #include "pipeline/PreviewTap.h"
 #include "render/D3D11Renderer.h"
+#include "tracking/FaceTracker.h"
+#include "tracking/TrackingResult.h"
 #include "ui/ImGuiLayer.h"
 #include "ui/MainWindow.h"
 
@@ -57,6 +59,14 @@ bool Application::Initialize(int show_command) {
             spdlog::warn("Camera capture did not start; see the UI status panel for details.");
         }
 
+        face_tracker_ = std::make_unique<FaceTracker>();
+        std::string tracker_error;
+        if (!face_tracker_->Initialize(&tracker_error)) {
+            spdlog::warn("Face tracker initialization failed: {}", tracker_error);
+        } else {
+            spdlog::info("Face tracker initialized successfully.");
+        }
+
         initialized_ = true;
         spdlog::info("Application initialized successfully.");
         return true;
@@ -87,6 +97,10 @@ int Application::Run() {
                 preview_tap_->SubmitFrame(*capture_frame);
                 last_capture_frame_count_ = capture_frame->frame_count;
             }
+
+            if (capture_frame.has_value() && face_tracker_) {
+                last_face_result_ = face_tracker_->Track(*capture_frame);
+            }
         }
 
         const PreviewTap::StateSnapshot preview_state =
@@ -109,6 +123,9 @@ int Application::Run() {
         imgui_layer_->RenderMainUi(
             camera_state,
             preview_state,
+            last_face_result_,
+            face_tracker_ ? face_tracker_->IsInitialized() : false,
+            face_tracker_ ? face_tracker_->GetInitializeError() : std::string(),
             renderer_->GetPreviewShaderResourceView(),
             renderer_->GetPreviewWidth(),
             renderer_->GetPreviewHeight());

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <d3d11.h>
+#include <string>
 
 #include "capture/CameraCapture.h"
 #include "pipeline/PreviewTap.h"
+#include "tracking/TrackingResult.h"
 
 namespace nohcam {
 
@@ -21,6 +23,9 @@ public:
     void RenderMainUi(
         const CameraCapture::StateSnapshot& camera_state,
         const PreviewTap::StateSnapshot& preview_state,
+        const FaceResult& face_result,
+        bool face_tracker_ready,
+        const std::string& face_tracker_error,
         ID3D11ShaderResourceView* preview_shader_resource_view,
         std::uint32_t preview_width,
         std::uint32_t preview_height);
