@@ -260,6 +260,43 @@ if(TARGET nohcam_tracking)
             COMMAND_EXPAND_LISTS
         )
     endif()
+
+    add_executable(NohCamFaceTrackerTest
+        src/tools/FaceTrackerTest.cpp
+    )
+
+    target_include_directories(NohCamFaceTrackerTest
+        PRIVATE
+            "${CMAKE_SOURCE_DIR}/src"
+    )
+
+    target_compile_definitions(NohCamFaceTrackerTest
+        PRIVATE
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            UNICODE
+            _UNICODE
+            NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
+    )
+
+    target_compile_options(NohCamFaceTrackerTest
+        PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+    )
+
+    target_link_libraries(NohCamFaceTrackerTest
+        PRIVATE
+            nohcam_tracking
+    )
+
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET NohCamFaceTrackerTest POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:NohCamFaceTrackerTest>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
 endif()
 
 if(NOHCAM_ENABLE_CUBISM_FRAMEWORK)

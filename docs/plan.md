@@ -129,7 +129,7 @@ NohCam/
 
 - [x] 1-4. ビルド手順
 
-- **C++ バックエンドのビルド (NohCam.exe, OnnxSmokeTest.exe)**
+- **C++ バックエンドのビルド (NohCam.exe, OnnxSmokeTest.exe, FaceTrackerTest.exe)**
   ```powershell
   # CMake 設定とビルド (Release 構成)
   & 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' --build build --config Release
@@ -141,13 +141,19 @@ NohCam/
   dotnet build src/NohCam.WinUI/NohCam.WinUI.csproj -c Release
   ```
 
+- **テスト・ユーティリティ**
+  - **ダミーモデルの生成 (テスト用):**
+    `uv run --with onnx tools/generate_dummy_face_models.py`
+  - **ONNX 動作確認テスト:**
+    `.\build\Release\NohCamOnnxSmokeTest.exe`
+  - **顔トラッキング単体テスト:**
+    `.\build\Release\NohCamFaceTrackerTest.exe`
+
 - **実行方法**
   - **メイン GUI (WinUI 3):**
     `.\src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\NohCam.WinUI.exe`
   - **バックエンド本体 (Win32):**
     `.\build\Release\NohCam.exe`
-  - **ONNX 動作確認テスト:**
-    `.\build\Release\NohCamOnnxSmokeTest.exe`
 
 ---
 
@@ -161,7 +167,7 @@ NohCam/
 - セッション初期化とモデルロードを `OnnxSession` に集約
 - `NohCamOnnxSmokeTest` でモデルロードと単発推論を確認できるようにする
 
-- [ ] 2-2. 顔トラッキング
+- [x] 2-2. 顔トラッキング
 
 - 顔ランドマーク用 ONNX モデルをロード
 - 468点ランドマーク取得
