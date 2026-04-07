@@ -26,6 +26,12 @@ set(NOHCAM_ONNX_MODEL_DIR
     "Path to the ONNX model directory used by NohCam."
 )
 
+set(NOHCAM_ONNXRUNTIME_ROOT
+    "${CMAKE_SOURCE_DIR}/third_party/onnxruntime"
+    CACHE PATH
+    "Path to the unpacked prebuilt ONNX Runtime distribution."
+)
+
 find_package(imgui CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -33,11 +39,53 @@ find_package(glm CONFIG REQUIRED)
 find_package(directx-headers CONFIG REQUIRED)
 
 if(NOHCAM_ENABLE_ONNXRUNTIME)
-    find_package(onnxruntime CONFIG REQUIRED)
+    find_path(NOHCAM_ONNXRUNTIME_INCLUDE_DIR
+        NAMES onnxruntime_cxx_api.h
+        HINTS "${NOHCAM_ONNXRUNTIME_ROOT}"
+        PATH_SUFFIXES
+            include
+            build/native/include
+    )
+
+    find_library(NOHCAM_ONNXRUNTIME_LIBRARY
+        NAMES onnxruntime
+        HINTS "${NOHCAM_ONNXRUNTIME_ROOT}"
+        PATH_SUFFIXES
+            lib
+            lib/x64
+            build/native/lib
+            build/native/lib/x64
+            runtimes/win-x64/native
+    )
+
+    if(NOHCAM_ONNXRUNTIME_INCLUDE_DIR AND NOHCAM_ONNXRUNTIME_LIBRARY)
+        add_library(nohcam_onnxruntime INTERFACE)
+        target_include_directories(nohcam_onnxruntime INTERFACE "${NOHCAM_ONNXRUNTIME_INCLUDE_DIR}")
+        target_link_libraries(nohcam_onnxruntime INTERFACE "${NOHCAM_ONNXRUNTIME_LIBRARY}")
+        message(STATUS "Using prebuilt ONNX Runtime from ${NOHCAM_ONNXRUNTIME_ROOT}")
+    else()
+        message(STATUS "Prebuilt ONNX Runtime not found at ${NOHCAM_ONNXRUNTIME_ROOT}; building without ONNX Runtime linkage.")
+    endif()
 endif()
 
 if(NOHCAM_ENABLE_DIRECTML)
-    find_library(NOHCAM_DIRECTML_LIBRARY NAMES directml)
+    set(NOHCAM_WINDOWS_KITS_ROOT "$ENV{WindowsSdkDir}")
+    if(NOT NOHCAM_WINDOWS_KITS_ROOT)
+        set(NOHCAM_WINDOWS_KITS_ROOT "C:/Program Files (x86)/Windows Kits/10")
+    endif()
+
+    set(NOHCAM_WINDOWS_KITS_LIB_HINTS "")
+    if(NOHCAM_WINDOWS_KITS_ROOT)
+        list(APPEND NOHCAM_WINDOWS_KITS_LIB_HINTS
+            "${NOHCAM_WINDOWS_KITS_ROOT}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64"
+            "${NOHCAM_WINDOWS_KITS_ROOT}/Lib/10.0.26100.0/um/x64"
+        )
+    endif()
+
+    find_library(NOHCAM_DIRECTML_LIBRARY
+        NAMES directml
+        HINTS ${NOHCAM_WINDOWS_KITS_LIB_HINTS}
+    )
     if(NOHCAM_DIRECTML_LIBRARY)
         message(STATUS "Using DirectML library: ${NOHCAM_DIRECTML_LIBRARY}")
     else()
@@ -102,8 +150,8 @@ target_link_libraries(NohCam
         mfuuid
 )
 
-if(NOHCAM_ENABLE_ONNXRUNTIME)
-    target_link_libraries(NohCam PRIVATE onnxruntime::onnxruntime)
+if(TARGET nohcam_onnxruntime)
+    target_link_libraries(NohCam PRIVATE nohcam_onnxruntime)
     target_compile_definitions(NohCam PRIVATE NOHCAM_HAS_ONNXRUNTIME=1)
 endif()
 

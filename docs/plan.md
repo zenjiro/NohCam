@@ -4,8 +4,8 @@
 
 - **本線は GUI 非依存** にする
   - Webカメラ入力 → トラッキング → Live2D反映 → 仮想カメラ出力 を独立した処理パイプラインとして構築する
-- **トラッキングは ONNX Runtime C++ で実装** する
-  - 顔・手ランドマーク推論は ONNX Runtime を用い、Windows では DirectML による GPU 加速を優先する
+- **トラッキングはプリビルト ONNX Runtime C++ で実装** する
+  - 顔・手ランドマーク推論は公式配布の ONNX Runtime を用い、Windows では DirectML による GPU 加速を優先する
 - **GUI は確認と設定に限定** する
   - 高FPSのリアルタイム描画は必須ではなく、低FPS・低解像度の確認用プレビューで十分
 - **本番UIは WinUI 3 を採用** する
@@ -74,7 +74,8 @@ NohCam/
 │   └── onnx/                         # 顔・手トラッキング用 ONNX モデル
 │
 └── third_party/
-    └── CubismSdkForNative/
+    ├── CubismSdkForNative/
+    └── onnxruntime/
 ```
 
 ---
@@ -97,7 +98,7 @@ NohCam/
 - Cubism Framework 静的ライブラリのビルド成功
 - Win32 + DX11 のビルド確認済み
 
-- ONNX Runtime を依存関係へ追加
+- ONNX Runtime のプリビルト配布物を配置して CMake から参照できるようにする
 - ONNX モデル配置ルールを確定
 - DirectML ライブラリ連携を CMake に組み込む
 
@@ -342,7 +343,7 @@ DLL側 (VirtualCamPin)
 
 | ライブラリ             | バージョン         | 取得方法              |
 |------------------------|--------------------|-----------------------|
-| ONNX Runtime           | 1.x                | 公式配布 / vcpkg      |
+| ONNX Runtime           | 1.x                | 公式プリビルト配布物  |
 | DirectML               | Windows SDK / NuGet| Microsoft 公式手順    |
 | Cubism SDK for Native  | 5-r.1              | Live2D 公式サイト     |
 | WinUI 3                | Windows App SDK 1.x| NuGet / 公式手順      |
