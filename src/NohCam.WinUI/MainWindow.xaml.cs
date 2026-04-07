@@ -56,14 +56,20 @@ public sealed partial class MainWindow : Window
         StatusTextBlock.Text = "Initializing tracker...";
 
         try {
-            StatusTextBlock.Text = "Calling Initialize...";
+            StatusTextBlock.Text = "Calling Initialize()...";
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             bool success = FaceTracker_Initialize();
+            sw.Stop();
+            StatusTextBlock.Text = $"Init took {sw.ElapsedMilliseconds}ms (success={success})";
+            
             var errorBuilder = new System.Text.StringBuilder(1024);
             FaceTracker_GetInitError(errorBuilder, 1024);
             var error = errorBuilder.ToString();
-            StatusTextBlock.Text = $"Tracker Init: {(success ? "OK" : "FAILED")} {error}";
+            if (!string.IsNullOrEmpty(error)) {
+                StatusTextBlock.Text = $"Init error: {error}";
+            }
         } catch (Exception ex) {
-            StatusTextBlock.Text = $"Tracker Init Exception: {ex}";
+            StatusTextBlock.Text = $"Exception: {ex.Message}";
         }
 
         await StartPreviewAsync();
