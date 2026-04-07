@@ -62,6 +62,8 @@ if(NOHCAM_ENABLE_ONNXRUNTIME)
         add_library(nohcam_onnxruntime INTERFACE)
         target_include_directories(nohcam_onnxruntime INTERFACE "${NOHCAM_ONNXRUNTIME_INCLUDE_DIR}")
         target_link_libraries(nohcam_onnxruntime INTERFACE "${NOHCAM_ONNXRUNTIME_LIBRARY}")
+        get_filename_component(NOHCAM_ONNXRUNTIME_LIBRARY_DIR "${NOHCAM_ONNXRUNTIME_LIBRARY}" DIRECTORY)
+        file(GLOB NOHCAM_ONNXRUNTIME_RUNTIME_DLLS "${NOHCAM_ONNXRUNTIME_LIBRARY_DIR}/onnxruntime*.dll")
         message(STATUS "Using prebuilt ONNX Runtime from ${NOHCAM_ONNXRUNTIME_ROOT}")
     else()
         message(STATUS "Prebuilt ONNX Runtime not found at ${NOHCAM_ONNXRUNTIME_ROOT}; building without ONNX Runtime linkage.")
@@ -153,6 +155,14 @@ target_link_libraries(NohCam
 if(TARGET nohcam_onnxruntime)
     target_link_libraries(NohCam PRIVATE nohcam_onnxruntime)
     target_compile_definitions(NohCam PRIVATE NOHCAM_HAS_ONNXRUNTIME=1)
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET NohCam POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:NohCam>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
 endif()
 
 if(NOHCAM_ENABLE_DIRECTML AND NOHCAM_DIRECTML_LIBRARY)

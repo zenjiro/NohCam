@@ -1,15 +1,20 @@
 # ONNX Runtime Layout
 
-Place the official prebuilt ONNX Runtime distribution in this directory.
+This directory stores the official prebuilt ONNX Runtime packages used by NohCam.
 
-Supported layouts:
+Current local setup:
 
-- Release zip extracted directly under `third_party/onnxruntime`
-- NuGet package contents extracted under `third_party/onnxruntime`
+- `Microsoft.ML.OnnxRuntime` `1.24.4`
+- `Microsoft.ML.OnnxRuntime.DirectML` `1.24.4`
 
-The CMake build looks for:
+Expected layout:
 
-- headers in `include/` or `build/native/include/`
-- import libraries in `lib/`, `lib/x64/`, `build/native/lib/`, or `build/native/lib/x64/`
+- headers in `build/native/include/`
+- Windows import libraries and runtime DLLs in `runtimes/win-x64/native/`
 
-Keep binaries out of git. This directory is ignored except for this file.
+Notes:
+
+- Extract the official NuGet packages directly into this directory.
+- The DirectML package should be overlaid on top of the base ONNX Runtime package so the DirectML-enabled Windows binaries are present.
+- This directory is ignored by git except for this file.
+- CMake reads this directory through `NOHCAM_ONNXRUNTIME_ROOT`.

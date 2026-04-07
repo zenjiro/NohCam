@@ -84,7 +84,7 @@ NohCam/
 
 ### Phase 1 — 土台構築 (1〜2週間)
 
-- [ ] 1-1. ビルド環境セットアップ
+- [x] 1-1. ビルド環境セットアップ
 
 - Visual Studio Community 2026
   - C++ によるデスクトップ開発ワークロード
@@ -98,7 +98,7 @@ NohCam/
 - Cubism Framework 静的ライブラリのビルド成功
 - Win32 + DX11 のビルド確認済み
 
-- ONNX Runtime のプリビルト配布物を配置して CMake から参照できるようにする
+- ONNX Runtime 1.24.4 のプリビルト配布物を `third_party/onnxruntime` に配置し、CMake から参照できるようにする
 - ONNX モデル配置ルールを確定
 - DirectML ライブラリ連携を CMake に組み込む
 
