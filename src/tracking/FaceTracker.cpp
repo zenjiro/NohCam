@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <iterator>
 
+#include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
 
 namespace nohcam {
@@ -49,7 +50,7 @@ bool GetInputShape(const std::vector<int64_t>& shape, FaceTracker::InputLayout l
 }
 
 constexpr float ToNormalizedFloat(std::uint8_t value) {
-    return static_cast<float>(value) / 255.0f;
+    return static_cast<float>(value);
 }
 
 }  // namespace
@@ -124,23 +125,40 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
     input_tensor.values = std::move(input_values);
 
     const auto face_outputs = face_session_->Run({input_tensor});
-    if (face_outputs.empty()) {
+    if (face_outputs.size() < 2) {
         return last_result_;
     }
 
-    last_result_ = ParseFaceOutput(face_outputs.front().values);
+    const auto& regressors_output = face_outputs[0];
+    const auto& classificators_output = face_outputs[1];
+
+    constexpr float kFacePresenceThreshold = 0.5f;
+    const float face_score = classificators_output.values.empty() ? 1.0f : classificators_output.values[0];
+    if (face_score < kFacePresenceThreshold) {
+        return last_result_;
+    }
+
+    last_result_ = ParseFaceOutput(regressors_output.values);
 
     if (blendshape_session_.has_value()) {
         const auto& blend_metadata = blendshape_session_->GetMetadata();
-        if (!blend_metadata.inputs.empty()) {
+        if (!blend_metadata.inputs.empty() && last_result_.detected) {
             OnnxSession::TensorData blend_input;
             blend_input.name = blend_metadata.inputs.front().name;
-            if (blendshape_input_layout_ == InputLayout::Nhwc) {
-                blend_input.shape = {1, target_height, target_width, target_channels};
-            } else {
-                blend_input.shape = {1, target_channels, target_height, target_width};
+            
+            // MediaPipe blendshapes V2 usually takes 146 specific landmarks (x, y)
+            // Input shape: [1, 146, 2]
+            blend_input.shape = {1, 146, 2};
+            blend_input.values.resize(146 * 2);
+            
+            // Mapping MediaPipe's 146 blendshape-required landmark indices
+            // For now, let's just use the first 146 landmarks as a placeholder
+            // or if the model expects normalized [0, 1] coordinates.
+            for (int i = 0; i < 146; ++i) {
+                blend_input.values[i * 2 + 0] = last_result_.landmarks[i].x;
+                blend_input.values[i * 2 + 1] = last_result_.landmarks[i].y;
             }
-            blend_input.values = input_tensor.values;
+
             const auto blend_outputs = blendshape_session_->Run({blend_input});
             if (!blend_outputs.empty()) {
                 last_result_.blendshapes = blend_outputs.front().values;
@@ -295,32 +313,44 @@ std::vector<float> FaceTracker::PreprocessFrame(
 
 FaceResult FaceTracker::ParseFaceOutput(const std::vector<float>& output_values) {
     FaceResult result;
-    if (output_values.size() < 3) {
+    // face_landmarks.onnx (v1/Legacy) returns 468 landmarks (x,y,z * 468 = 1404 values)
+    if (output_values.size() < 468 * 3) {
         return result;
     }
 
-    const std::size_t available_points = output_values.size() / 3;
-    const std::size_t point_count = std::min<std::size_t>(available_points, result.landmarks.size());
+    const std::size_t point_count = 468;
     float sum_x = 0.0f;
     float sum_y = 0.0f;
 
     for (std::size_t index = 0; index < point_count; ++index) {
-        const float x = output_values[index * 3 + 0];
-        const float y = output_values[index * 3 + 1];
-        const float z = output_values[index * 3 + 2];
+        const float x = output_values[index * 3 + 0] / 192.0f;
+        const float y = output_values[index * 3 + 1] / 192.0f;
+        const float z = output_values[index * 3 + 2] / 192.0f;
+        
         result.landmarks[index] = glm::vec3{x, y, z};
         sum_x += x;
         sum_y += y;
     }
 
-    result.detected = point_count > 0;
-    if (result.detected) {
-        const float inv_count = 1.0f / static_cast<float>(point_count);
-        result.x = sum_x * inv_count;
-        result.y = sum_y * inv_count;
-        result.yaw = (result.x - 0.5f) * 90.0f;
-        result.pitch = (0.5f - result.y) * 90.0f;
-        result.roll = 0.0f;
+    result.detected = true;
+    const float inv_count = 1.0f / static_cast<float>(point_count);
+    result.x = sum_x * inv_count;
+    result.y = sum_y * inv_count;
+
+    // Head pose from landmarks
+    // 1: Nose tip
+    // 33: Left eye outer
+    // 263: Right eye outer
+    // 152: Chin
+    const auto& nose = result.landmarks[1];
+    const auto& left_eye = result.landmarks[33];
+    const auto& right_eye = result.landmarks[263];
+    
+    // Normalize relative to face size
+    float eye_dist = glm::distance(left_eye, right_eye);
+    if (eye_dist > 0.001f) {
+        result.yaw = (nose.x - (left_eye.x + right_eye.x) * 0.5f) / eye_dist * 45.0f;
+        result.pitch = (nose.y - (left_eye.y + right_eye.y) * 0.5f) / eye_dist * 45.0f;
     }
 
     return result;

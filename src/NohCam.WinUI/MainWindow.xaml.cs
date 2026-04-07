@@ -5,6 +5,8 @@ using Windows.Media.Capture.Frames;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Media.MediaProperties;
+using System.Runtime.InteropServices;
+using Windows.Graphics.Imaging;
 
 namespace NohCam.WinUI;
 
@@ -12,6 +14,30 @@ public sealed partial class MainWindow : Window
 {
     private MediaCapture? _mediaCapture;
     private MediaPlayer? _mediaPlayer;
+    private MediaFrameReader? _frameReader;
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_Initialize();
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void FaceTracker_Shutdown();
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_Track(
+        IntPtr pixels,
+        uint width,
+        uint height,
+        uint stride,
+        out bool detected,
+        out float yaw,
+        out float pitch,
+        out float roll,
+        out float x,
+        out float y,
+        out int blendshapeCount,
+        float[] blendshapes);
+
+    private readonly float[] _blendshapes = new float[128];
 
     public MainWindow()
     {
@@ -23,6 +49,18 @@ public sealed partial class MainWindow : Window
     private async void OnActivated(object sender, WindowActivatedEventArgs args)
     {
         Activated -= OnActivated;
+        
+        // Initialize bridge in a background task
+        await Task.Run(() => {
+            try {
+                FaceTracker_Initialize();
+            } catch (Exception ex) {
+                _ = DispatcherQueue.TryEnqueue(() => {
+                    StatusTextBlock.Text = $"Bridge Init Failed: {ex.Message}";
+                });
+            }
+        });
+
         await StartPreviewAsync();
     }
 
@@ -88,8 +126,13 @@ public sealed partial class MainWindow : Window
             PreviewPlaceholderTextBlock.Visibility = Visibility.Collapsed;
             _mediaPlayer.Play();
 
+            // Setup Frame Reader for tracking
+            _frameReader = await _mediaCapture.CreateFrameReaderAsync(frameSource, MediaEncodingSubtypes.Bgra8);
+            _frameReader.FrameArrived += FrameReader_FrameArrived;
+            await _frameReader.StartAsync();
+
             StatusTextBlock.Text = "Camera preview is running.";
-            PreviewStateTextBlock.Text = "Preview: active (640x360 / 10fps)";
+            PreviewStateTextBlock.Text = "Preview: active (Tracking ON)";
         }
         catch (Exception ex)
         {
@@ -99,13 +142,74 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
+    {
+        using var frame = sender.TryAcquireLatestFrame();
+        if (frame?.VideoMediaFrame?.SoftwareBitmap is null) return;
+
+        using var bitmap = SoftwareBitmap.Convert(frame.VideoMediaFrame.SoftwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore);
+        
+        unsafe {
+            using var buffer = bitmap.LockBuffer(BitmapBufferAccessMode.Read);
+            using var reference = buffer.CreateReference();
+            ((IMemoryBufferByteAccess)reference).GetBuffer(out byte* data, out uint capacity);
+
+            bool detected;
+            float yaw, pitch, roll, x, y;
+            int blendshapeCount;
+
+            bool success = FaceTracker_Track(
+                (IntPtr)data,
+                (uint)bitmap.PixelWidth,
+                (uint)bitmap.PixelHeight,
+                (uint)(bitmap.PixelWidth * 4),
+                out detected,
+                out yaw,
+                out pitch,
+                out roll,
+                out x,
+                out y,
+                out blendshapeCount,
+                _blendshapes);
+
+            if (success) {
+                _ = DispatcherQueue.TryEnqueue(() => {
+                    FaceDetectedTextBlock.Text = $"Detected: {(detected ? "Yes" : "No")}";
+                    if (detected) {
+                        FaceYawTextBlock.Text = $"Yaw: {yaw:F2}";
+                        FacePitchTextBlock.Text = $"Pitch: {pitch:F2}";
+                        FaceRollTextBlock.Text = $"Roll: {roll:F2}";
+                        FaceCenterTextBlock.Text = $"Center: ({x:F2}, {y:F2})";
+                        BlendshapeCountTextBlock.Text = $"Blendshapes: {blendshapeCount}";
+                    }
+                });
+            }
+        }
+    }
+
+    [ComImport]
+    [Guid("5B0D3235-4DB0-4D44-9101-9C8015E10746")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    unsafe interface IMemoryBufferByteAccess
+    {
+        void GetBuffer(out byte* buffer, out uint capacity);
+    }
+
     private async void OnClosed(object sender, WindowEventArgs args)
     {
         await StopPreviewAsync();
+        FaceTracker_Shutdown();
     }
 
     private async Task StopPreviewAsync()
     {
+        if (_frameReader is not null) {
+            await _frameReader.StopAsync();
+            _frameReader.FrameArrived -= FrameReader_FrameArrived;
+            _frameReader.Dispose();
+            _frameReader = null;
+        }
+
         if (_mediaPlayer is not null)
         {
             try
@@ -124,13 +228,6 @@ public sealed partial class MainWindow : Window
         if (_mediaCapture is null)
         {
             return;
-        }
-
-        try
-        {
-        }
-        catch
-        {
         }
 
         PreviewPlaceholderTextBlock.Visibility = Visibility.Visible;

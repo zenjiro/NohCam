@@ -46,6 +46,16 @@
                     <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" />
                     <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" />
                     <Button Content="Restart Preview" Click="RestartPreview_Click" />
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,8" />
+
+                    <TextBlock Text="Face Tracking" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock x:Name="FaceDetectedTextBlock" Text="Detected: No" />
+                    <TextBlock x:Name="FaceYawTextBlock" Text="Yaw: 0.00" />
+                    <TextBlock x:Name="FacePitchTextBlock" Text="Pitch: 0.00" />
+                    <TextBlock x:Name="FaceRollTextBlock" Text="Roll: 0.00" />
+                    <TextBlock x:Name="FaceCenterTextBlock" Text="Center: (0.50, 0.50)" />
+                    <TextBlock x:Name="BlendshapeCountTextBlock" Text="Blendshapes: 0" />
                 </StackPanel>
             </Border>
         </Grid>

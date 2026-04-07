@@ -160,6 +160,21 @@ if(TARGET nohcam_onnxruntime)
         target_link_libraries(nohcam_tracking PUBLIC "${NOHCAM_DIRECTML_LIBRARY}")
         target_compile_definitions(nohcam_tracking PUBLIC NOHCAM_HAS_DIRECTML=1)
     endif()
+
+    # Bridge for WinUI 3 (C# P/Invoke)
+    add_library(nohcam_bridge SHARED
+        src/tracking/FaceTrackerBridge.cpp
+    )
+    target_link_libraries(nohcam_bridge PRIVATE nohcam_tracking)
+    
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET nohcam_bridge POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:nohcam_bridge>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
 endif()
 
 add_executable(NohCam WIN32
@@ -259,6 +274,7 @@ if(TARGET nohcam_tracking)
 
     add_executable(NohCamFaceTrackerTest
         src/tools/FaceTrackerTest.cpp
+        src/capture/CameraCapture.cpp
     )
 
     target_include_directories(NohCamFaceTrackerTest
@@ -283,6 +299,10 @@ if(TARGET nohcam_tracking)
     target_link_libraries(NohCamFaceTrackerTest
         PRIVATE
             nohcam_tracking
+            mf
+            mfplat
+            mfreadwrite
+            mfuuid
     )
 
     if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
@@ -290,6 +310,21 @@ if(TARGET nohcam_tracking)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
                 $<TARGET_FILE_DIR:NohCamFaceTrackerTest>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
+
+    add_executable(ModelMetadataCheck
+        src/tools/ModelMetadataCheck.cpp
+    )
+    target_include_directories(ModelMetadataCheck PRIVATE "${CMAKE_SOURCE_DIR}/src")
+    target_compile_definitions(ModelMetadataCheck PRIVATE UNICODE _UNICODE)
+    target_link_libraries(ModelMetadataCheck PRIVATE nohcam_tracking)
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET ModelMetadataCheck POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:ModelMetadataCheck>
             COMMAND_EXPAND_LISTS
         )
     endif()

@@ -15,7 +15,7 @@ struct FaceResult {
     float roll = 0.0f;
     float x = 0.0f;
     float y = 0.0f;
-    std::array<glm::vec3, 468> landmarks{};
+    std::array<glm::vec3, 478> landmarks{};
     std::vector<float> blendshapes;
 };
 

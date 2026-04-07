@@ -1,4 +1,6 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include <vector>
 #include <string>
 
@@ -6,6 +8,12 @@
 #include "capture/CameraCapture.h"
 
 int main() {
+    nohcam::CameraCapture camera;
+    if (!camera.Initialize()) {
+        std::cerr << "Camera initialization failed." << std::endl;
+        return 1;
+    }
+
     nohcam::FaceTracker tracker;
     std::string error_message;
     if (!tracker.Initialize(&error_message)) {
@@ -15,34 +23,48 @@ int main() {
 
     std::cout << "FaceTracker initialized successfully." << std::endl;
 
-    // Create a dummy capture frame (192x192, RGBA)
-    nohcam::CameraCapture::CaptureFrame frame;
-    frame.valid = true;
-    frame.width = 192;
-    frame.height = 192;
-    frame.stride = 192 * 4;
-    frame.pixels.assign(frame.stride * frame.height, 128); // Grey image
-
-    auto result = tracker.Track(frame);
-
-    if (result.detected) {
-        std::cout << "Face detected!" << std::endl;
-        std::cout << "Center: (" << result.x << ", " << result.y << ")" << std::endl;
-        std::cout << "Yaw: " << result.yaw << ", Pitch: " << result.pitch << ", Roll: " << result.roll << std::endl;
-        std::cout << "Landmarks: " << result.landmarks.size() << std::endl;
-        std::cout << "Blendshapes: " << result.blendshapes.size() << std::endl;
-        
-        if (result.blendshapes.size() == 52) {
-            std::cout << "Blendshape count is correct (52)." << std::endl;
-        } else {
-            std::cerr << "Unexpected blendshape count: " << result.blendshapes.size() << std::endl;
-            return 1;
-        }
-    } else {
-        std::cerr << "Face NOT detected (using dummy models)." << std::endl;
+    if (!camera.StartDefaultDevice()) {
+        std::cerr << "Failed to start camera capture." << std::endl;
         return 1;
     }
 
-    std::cout << "FaceTracker test passed." << std::endl;
-    return 0;
+    std::cout << "Camera capture started. Waiting for frame..." << std::endl;
+
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        auto frame = camera.GetLatestCaptureFrame();
+        if (!frame.has_value() || !frame->valid) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
+
+        std::cout << "Got frame: " << frame->width << "x" << frame->height << std::endl;
+
+        auto result = tracker.Track(*frame);
+
+        if (result.detected) {
+            std::cout << "Face detected!" << std::endl;
+            std::cout << "Center: (" << result.x << ", " << result.y << ")" << std::endl;
+            std::cout << "Yaw: " << result.yaw << ", Pitch: " << result.pitch << ", Roll: " << result.roll << std::endl;
+            std::cout << "Landmarks: " << result.landmarks.size() << std::endl;
+            std::cout << "Blendshapes: " << result.blendshapes.size() << std::endl;
+            
+            if (result.blendshapes.size() == 52) {
+                std::cout << "Blendshape count is correct (52)." << std::endl;
+            } else {
+                std::cerr << "Unexpected blendshape count: " << result.blendshapes.size() << std::endl;
+            }
+            
+            camera.Shutdown();
+            std::cout << "FaceTracker test passed." << std::endl;
+            return 0;
+        } else {
+            std::cout << "No face detected in frame " << attempt + 1 << std::endl;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    camera.Shutdown();
+    std::cerr << "No face detected after 100 attempts." << std::endl;
+    return 1;
 }
