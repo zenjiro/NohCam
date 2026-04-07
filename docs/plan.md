@@ -109,10 +109,10 @@ NohCam/
 - `IDXGISwapChain1` + `ID3D11Device` + `ID3D11DeviceContext` 初期化
 - WinUI 3 ホストと接続できるレンダリング基盤を整備する
 
-- [ ] 1-3. Media Foundation でカメラ入力
+- [x] 1-3. Media Foundation でカメラ入力
 
 - `IMFSourceReader` を使い Webカメラから RGB32 / NV12 フレームを取得
-- GUI表示用には低解像度・低FPSの確認用プレビューを別系統で生成
+- GUI表示用には `PreviewTap` で 640x360 / 10fps の確認用プレビューを別系統で生成
 - GUIプレビューは本線を間引いたフレームを表示するだけに留める
 - カメラ入力が安定して取得できることを確認する
 - GUIプレビューを閉じても本線が成立する構造にする

@@ -12,7 +12,7 @@ namespace nohcam {
 
 class CameraCapture {
 public:
-    struct PreviewFrame {
+    struct CaptureFrame {
         bool valid = false;
         std::uint32_t width = 0;
         std::uint32_t height = 0;
@@ -53,7 +53,7 @@ public:
 
     bool StartDefaultDevice();
     StateSnapshot GetStateSnapshot() const;
-    std::optional<PreviewFrame> GetLatestPreviewFrame() const;
+    std::optional<CaptureFrame> GetLatestCaptureFrame() const;
 
 private:
     bool EnumerateDevices();
@@ -62,9 +62,9 @@ private:
 
     std::vector<DeviceInfo> devices_;
     mutable std::mutex state_mutex_;
-    mutable std::mutex preview_mutex_;
+    mutable std::mutex capture_frame_mutex_;
     StateSnapshot state_;
-    PreviewFrame latest_preview_frame_;
+    CaptureFrame latest_capture_frame_;
     std::thread capture_thread_;
     std::atomic<bool> stop_requested_ = false;
     bool media_foundation_started_ = false;

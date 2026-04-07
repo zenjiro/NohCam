@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 #include <Windows.h>
@@ -10,6 +11,7 @@ class CameraCapture;
 class D3D11Renderer;
 class ImGuiLayer;
 class MainWindow;
+class PreviewTap;
 
 class Application {
 public:
@@ -31,6 +33,9 @@ private:
     std::unique_ptr<D3D11Renderer> renderer_;
     std::unique_ptr<ImGuiLayer> imgui_layer_;
     std::unique_ptr<CameraCapture> camera_capture_;
+    std::unique_ptr<PreviewTap> preview_tap_;
+    std::uint64_t last_capture_frame_count_ = 0;
+    std::uint64_t last_preview_frame_count_ = 0;
 };
 
 }  // namespace nohcam

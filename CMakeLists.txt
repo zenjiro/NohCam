@@ -99,6 +99,7 @@ set(NOHCAM_SOURCES
     src/main.cpp
     src/app/Application.cpp
     src/capture/CameraCapture.cpp
+    src/pipeline/PreviewTap.cpp
     src/render/D3D11Renderer.cpp
     src/ui/ImGuiLayer.cpp
     src/ui/MainWindow.cpp
@@ -107,6 +108,7 @@ set(NOHCAM_SOURCES
 set(NOHCAM_HEADERS
     src/app/Application.h
     src/capture/CameraCapture.h
+    src/pipeline/PreviewTap.h
     src/render/D3D11Renderer.h
     src/ui/ImGuiLayer.h
     src/ui/MainWindow.h

@@ -76,6 +76,7 @@ void ImGuiLayer::BeginFrame() {
 
 void ImGuiLayer::RenderMainUi(
     const CameraCapture::StateSnapshot& camera_state,
+    const PreviewTap::StateSnapshot& preview_state,
     ID3D11ShaderResourceView* preview_shader_resource_view,
     std::uint32_t preview_width,
     std::uint32_t preview_height) {
@@ -83,33 +84,36 @@ void ImGuiLayer::RenderMainUi(
         return;
     }
 
-    ImGui::Begin("Preview");
-    const ImVec2 available = ImGui::GetContentRegionAvail();
-    if (preview_shader_resource_view != nullptr && preview_width > 0 && preview_height > 0) {
-        float draw_width = available.x;
-        float draw_height = draw_width * (static_cast<float>(preview_height) / static_cast<float>(preview_width));
+    if (show_preview_window_) {
+        if (ImGui::Begin("Preview", &show_preview_window_)) {
+            const ImVec2 available = ImGui::GetContentRegionAvail();
+            if (preview_shader_resource_view != nullptr && preview_width > 0 && preview_height > 0) {
+                float draw_width = available.x;
+                float draw_height = draw_width * (static_cast<float>(preview_height) / static_cast<float>(preview_width));
 
-        if (draw_height > available.y && available.y > 0.0f) {
-            draw_height = available.y;
-            draw_width = draw_height * (static_cast<float>(preview_width) / static_cast<float>(preview_height));
+                if (draw_height > available.y && available.y > 0.0f) {
+                    draw_height = available.y;
+                    draw_width = draw_height * (static_cast<float>(preview_width) / static_cast<float>(preview_height));
+                }
+
+                const float offset_x = std::max(0.0f, (available.x - draw_width) * 0.5f);
+                const float offset_y = std::max(0.0f, (available.y - draw_height) * 0.5f);
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset_x);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offset_y);
+                ImGui::Image(preview_shader_resource_view, ImVec2(draw_width, draw_height));
+            } else if (camera_state.frame_received) {
+                ImGui::TextUnformatted("A frame arrived, but no preview texture is available.");
+            } else if (camera_state.running) {
+                ImGui::TextUnformatted("Waiting for the first camera frame...");
+            } else {
+                ImGui::TextUnformatted("No preview available.");
+            }
         }
-
-        const float offset_x = std::max(0.0f, (available.x - draw_width) * 0.5f);
-        const float offset_y = std::max(0.0f, (available.y - draw_height) * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset_x);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offset_y);
-        ImGui::Image(preview_shader_resource_view, ImVec2(draw_width, draw_height));
-    } else if (camera_state.frame_received) {
-        ImGui::TextUnformatted("A frame arrived, but no preview texture is available.");
-    } else if (camera_state.running) {
-        ImGui::TextUnformatted("Waiting for the first camera frame...");
-    } else {
-        ImGui::TextUnformatted("No preview available.");
+        ImGui::End();
     }
-    ImGui::End();
 
     ImGui::Begin("Camera Status");
-    ImGui::TextUnformatted("Phase 1 camera preview is running through Media Foundation and D3D11.");
+    ImGui::TextUnformatted("Phase 1 camera input uses a full-rate capture path plus a throttled preview tap.");
     ImGui::Separator();
     ImGui::Text("Media Foundation: %s", camera_state.media_foundation_ready ? "ready" : "not ready");
     ImGui::Text("Camera devices: %zu", camera_state.device_count);
@@ -133,6 +137,10 @@ void ImGuiLayer::RenderMainUi(
     } else {
         ImGui::TextUnformatted("Preview texture: not created yet");
     }
+    ImGui::Text("Preview tap: %s", preview_state.enabled ? "enabled" : "disabled");
+    ImGui::Text("Preview budget: %ux%u @ %u fps", preview_state.max_width, preview_state.max_height, preview_state.target_fps);
+    ImGui::Text("Preview frames: %llu", static_cast<unsigned long long>(preview_state.preview_frame_count));
+    ImGui::Text("Source frames seen by preview tap: %llu", static_cast<unsigned long long>(preview_state.source_frame_count));
 
     ImGui::Text("Frames received: %llu", static_cast<unsigned long long>(camera_state.frame_count));
     if (camera_state.frame_received) {
@@ -148,6 +156,7 @@ void ImGuiLayer::RenderMainUi(
     }
 
     ImGui::Spacing();
+    ImGui::Checkbox("Show preview window", &show_preview_window_);
     ImGui::Checkbox("Show Dear ImGui demo", &show_demo_window_);
     ImGui::End();
 

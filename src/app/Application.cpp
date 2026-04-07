@@ -4,6 +4,7 @@
 #include <exception>
 
 #include "capture/CameraCapture.h"
+#include "pipeline/PreviewTap.h"
 #include "render/D3D11Renderer.h"
 #include "ui/ImGuiLayer.h"
 #include "ui/MainWindow.h"
@@ -28,6 +29,7 @@ bool Application::Initialize(int show_command) {
         renderer_ = std::make_unique<D3D11Renderer>();
         imgui_layer_ = std::make_unique<ImGuiLayer>();
         camera_capture_ = std::make_unique<CameraCapture>();
+        preview_tap_ = std::make_unique<PreviewTap>();
 
         if (!main_window_->Create(L"NohCam", 1280, 720, show_command)) {
             spdlog::error("Failed to create main window.");
@@ -73,15 +75,32 @@ int Application::Run() {
     while (main_window_ && main_window_->ProcessMessages()) {
         const CameraCapture::StateSnapshot camera_state =
             camera_capture_ ? camera_capture_->GetStateSnapshot() : CameraCapture::StateSnapshot{};
+        const bool preview_enabled = imgui_layer_ ? imgui_layer_->WantsPreview() : true;
+
+        if (preview_tap_) {
+            preview_tap_->SetEnabled(preview_enabled);
+        }
 
         if (camera_capture_) {
-            const auto preview_frame = camera_capture_->GetLatestPreviewFrame();
-            if (preview_frame.has_value()) {
+            const auto capture_frame = camera_capture_->GetLatestCaptureFrame();
+            if (capture_frame.has_value() && preview_tap_ && capture_frame->frame_count != last_capture_frame_count_) {
+                preview_tap_->SubmitFrame(*capture_frame);
+                last_capture_frame_count_ = capture_frame->frame_count;
+            }
+        }
+
+        const PreviewTap::StateSnapshot preview_state =
+            preview_tap_ ? preview_tap_->GetStateSnapshot() : PreviewTap::StateSnapshot{};
+
+        if (preview_tap_) {
+            const auto preview_frame = preview_tap_->GetLatestPreviewFrame();
+            if (preview_frame.has_value() && preview_frame->frame_count != last_preview_frame_count_) {
                 renderer_->UpdatePreviewTexture(
                     preview_frame->pixels.data(),
                     preview_frame->width,
                     preview_frame->height,
                     preview_frame->stride);
+                last_preview_frame_count_ = preview_frame->frame_count;
             }
         }
 
@@ -89,6 +108,7 @@ int Application::Run() {
         imgui_layer_->BeginFrame();
         imgui_layer_->RenderMainUi(
             camera_state,
+            preview_state,
             renderer_->GetPreviewShaderResourceView(),
             renderer_->GetPreviewWidth(),
             renderer_->GetPreviewHeight());
@@ -118,6 +138,7 @@ void Application::Shutdown() {
 
     imgui_layer_.reset();
     camera_capture_.reset();
+    preview_tap_.reset();
     renderer_.reset();
     main_window_.reset();
     initialized_ = false;

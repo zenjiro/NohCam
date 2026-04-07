@@ -155,8 +155,8 @@ void CameraCapture::Shutdown() {
     }
 
     {
-        std::scoped_lock lock(preview_mutex_);
-        latest_preview_frame_ = {};
+        std::scoped_lock lock(capture_frame_mutex_);
+        latest_capture_frame_ = {};
     }
 
     devices_.clear();
@@ -192,13 +192,13 @@ CameraCapture::StateSnapshot CameraCapture::GetStateSnapshot() const {
     return state_;
 }
 
-std::optional<CameraCapture::PreviewFrame> CameraCapture::GetLatestPreviewFrame() const {
-    std::scoped_lock lock(preview_mutex_);
-    if (!latest_preview_frame_.valid) {
+std::optional<CameraCapture::CaptureFrame> CameraCapture::GetLatestCaptureFrame() const {
+    std::scoped_lock lock(capture_frame_mutex_);
+    if (!latest_capture_frame_.valid) {
         return std::nullopt;
     }
 
-    return latest_preview_frame_;
+    return latest_capture_frame_;
 }
 
 bool CameraCapture::EnumerateDevices() {
@@ -449,17 +449,17 @@ void CameraCapture::CaptureLoop(std::wstring device_id, std::wstring device_name
             break;
         }
 
-        PreviewFrame preview_frame;
-        preview_frame.valid = true;
-        preview_frame.width = width;
-        preview_frame.height = height;
-        preview_frame.stride = width * 4;
-        preview_frame.timestamp_hns = timestamp;
+        CaptureFrame capture_frame;
+        capture_frame.valid = true;
+        capture_frame.width = width;
+        capture_frame.height = height;
+        capture_frame.stride = width * 4;
+        capture_frame.timestamp_hns = timestamp;
 
         if (negotiated_subtype == MFVideoFormat_NV12) {
-            ConvertNv12ToBgra(source_bytes, width, height, width, &preview_frame.pixels);
+            ConvertNv12ToBgra(source_bytes, width, height, width, &capture_frame.pixels);
         } else {
-            preview_frame.pixels.resize(static_cast<std::size_t>(preview_frame.stride) * preview_frame.height);
+            capture_frame.pixels.resize(static_cast<std::size_t>(capture_frame.stride) * capture_frame.height);
             const std::size_t source_stride = width * 4;
             const std::size_t required_bytes = source_stride * height;
             if (current_length < required_bytes) {
@@ -470,9 +470,9 @@ void CameraCapture::CaptureLoop(std::wstring device_id, std::wstring device_name
 
             for (std::uint32_t row = 0; row < height; ++row) {
                 std::memcpy(
-                    preview_frame.pixels.data() + static_cast<std::size_t>(row) * preview_frame.stride,
+                    capture_frame.pixels.data() + static_cast<std::size_t>(row) * capture_frame.stride,
                     source_bytes + static_cast<std::size_t>(row) * source_stride,
-                    preview_frame.stride);
+                    capture_frame.stride);
             }
         }
 
@@ -483,11 +483,11 @@ void CameraCapture::CaptureLoop(std::wstring device_id, std::wstring device_name
         ++state_.frame_count;
         state_.last_sample_time_hns = timestamp;
 
-        preview_frame.frame_count = state_.frame_count;
+        capture_frame.frame_count = state_.frame_count;
 
         {
-            std::scoped_lock preview_lock(preview_mutex_);
-            latest_preview_frame_ = std::move(preview_frame);
+            std::scoped_lock preview_lock(capture_frame_mutex_);
+            latest_capture_frame_ = std::move(capture_frame);
         }
     }
 
