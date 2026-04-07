@@ -1,11 +1,31 @@
 #include "ui/ImGuiLayer.h"
 
+#include <Windows.h>
+
+#include <algorithm>
+#include <string_view>
+
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 #include <spdlog/spdlog.h>
 
 namespace nohcam {
+
+namespace {
+
+std::string Narrow(std::wstring_view text) {
+    if (text.empty()) {
+        return {};
+    }
+
+    const int size = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+    std::string result(size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(), size, nullptr, nullptr);
+    return result;
+}
+
+}  // namespace
 
 bool ImGuiLayer::Initialize(HWND window_handle, ID3D11Device* device, ID3D11DeviceContext* device_context) {
     IMGUI_CHECKVERSION();
@@ -54,16 +74,81 @@ void ImGuiLayer::BeginFrame() {
     ImGui::NewFrame();
 }
 
-void ImGuiLayer::RenderDemoUi() {
+void ImGuiLayer::RenderMainUi(
+    const CameraCapture::StateSnapshot& camera_state,
+    ID3D11ShaderResourceView* preview_shader_resource_view,
+    std::uint32_t preview_width,
+    std::uint32_t preview_height) {
     if (!initialized_) {
         return;
     }
 
-    ImGui::Begin("Phase 1 Bootstrap");
-    ImGui::TextUnformatted("NohCam Win32 + DirectX 11 initialization is running.");
+    ImGui::Begin("Preview");
+    const ImVec2 available = ImGui::GetContentRegionAvail();
+    if (preview_shader_resource_view != nullptr && preview_width > 0 && preview_height > 0) {
+        float draw_width = available.x;
+        float draw_height = draw_width * (static_cast<float>(preview_height) / static_cast<float>(preview_width));
+
+        if (draw_height > available.y && available.y > 0.0f) {
+            draw_height = available.y;
+            draw_width = draw_height * (static_cast<float>(preview_width) / static_cast<float>(preview_height));
+        }
+
+        const float offset_x = std::max(0.0f, (available.x - draw_width) * 0.5f);
+        const float offset_y = std::max(0.0f, (available.y - draw_height) * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset_x);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offset_y);
+        ImGui::Image(preview_shader_resource_view, ImVec2(draw_width, draw_height));
+    } else if (camera_state.frame_received) {
+        ImGui::TextUnformatted("A frame arrived, but no preview texture is available.");
+    } else if (camera_state.running) {
+        ImGui::TextUnformatted("Waiting for the first camera frame...");
+    } else {
+        ImGui::TextUnformatted("No preview available.");
+    }
+    ImGui::End();
+
+    ImGui::Begin("Camera Status");
+    ImGui::TextUnformatted("Phase 1 camera preview is running through Media Foundation and D3D11.");
     ImGui::Separator();
+    ImGui::Text("Media Foundation: %s", camera_state.media_foundation_ready ? "ready" : "not ready");
+    ImGui::Text("Camera devices: %zu", camera_state.device_count);
+    ImGui::Text("Capture status: %s", camera_state.running ? "running" : "idle");
+
+    const std::string active_device_name = Narrow(camera_state.active_device_name);
+    ImGui::Text("Active device: %s", active_device_name.empty() ? "(none)" : active_device_name.c_str());
+
+    const std::string negotiated_subtype = Narrow(camera_state.negotiated_subtype);
+    ImGui::Text("Negotiated format: %s", negotiated_subtype.empty() ? "Unknown" : negotiated_subtype.c_str());
+    ImGui::Text("NV12 fallback: %s", camera_state.using_nv12_fallback ? "yes" : "no");
+
+    if (camera_state.width > 0 && camera_state.height > 0) {
+        ImGui::Text("Capture resolution: %ux%u", camera_state.width, camera_state.height);
+    } else {
+        ImGui::TextUnformatted("Capture resolution: waiting for negotiation");
+    }
+
+    if (preview_width > 0 && preview_height > 0) {
+        ImGui::Text("Preview texture: %ux%u", preview_width, preview_height);
+    } else {
+        ImGui::TextUnformatted("Preview texture: not created yet");
+    }
+
+    ImGui::Text("Frames received: %llu", static_cast<unsigned long long>(camera_state.frame_count));
+    if (camera_state.frame_received) {
+        ImGui::Text("Last sample time: %.2f ms", static_cast<double>(camera_state.last_sample_time_hns) / 10000.0);
+    } else {
+        ImGui::TextUnformatted("Last sample time: no frame yet");
+    }
+
+    if (!camera_state.last_error.empty()) {
+        const std::string last_error = Narrow(camera_state.last_error);
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(1.0f, 0.55f, 0.45f, 1.0f), "Camera warning: %s", last_error.c_str());
+    }
+
+    ImGui::Spacing();
     ImGui::Checkbox("Show Dear ImGui demo", &show_demo_window_);
-    ImGui::TextUnformatted("Next steps: camera capture, tracking, and avatar rendering.");
     ImGui::End();
 
     if (show_demo_window_) {

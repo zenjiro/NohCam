@@ -27,6 +27,7 @@ find_package(directx-headers CONFIG REQUIRED)
 set(NOHCAM_SOURCES
     src/main.cpp
     src/app/Application.cpp
+    src/capture/CameraCapture.cpp
     src/render/D3D11Renderer.cpp
     src/ui/ImGuiLayer.cpp
     src/ui/MainWindow.cpp
@@ -34,6 +35,7 @@ set(NOHCAM_SOURCES
 
 set(NOHCAM_HEADERS
     src/app/Application.h
+    src/capture/CameraCapture.h
     src/render/D3D11Renderer.h
     src/ui/ImGuiLayer.h
     src/ui/MainWindow.h
@@ -72,6 +74,10 @@ target_link_libraries(NohCam
         d3d11
         dxgi
         d3dcompiler
+        mf
+        mfplat
+        mfreadwrite
+        mfuuid
 )
 
 if(NOHCAM_ENABLE_CUBISM_FRAMEWORK)

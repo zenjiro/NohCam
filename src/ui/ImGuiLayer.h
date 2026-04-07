@@ -2,7 +2,7 @@
 
 #include <d3d11.h>
 
-struct ImDrawData;
+#include "capture/CameraCapture.h"
 
 namespace nohcam {
 
@@ -17,7 +17,11 @@ public:
     bool Initialize(HWND window_handle, ID3D11Device* device, ID3D11DeviceContext* device_context);
     void Shutdown();
     void BeginFrame();
-    void RenderDemoUi();
+    void RenderMainUi(
+        const CameraCapture::StateSnapshot& camera_state,
+        ID3D11ShaderResourceView* preview_shader_resource_view,
+        std::uint32_t preview_width,
+        std::uint32_t preview_height);
     void Render(ID3D11DeviceContext* device_context);
 
 private:

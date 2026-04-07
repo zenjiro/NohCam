@@ -3,6 +3,7 @@
 #include <chrono>
 #include <exception>
 
+#include "capture/CameraCapture.h"
 #include "render/D3D11Renderer.h"
 #include "ui/ImGuiLayer.h"
 #include "ui/MainWindow.h"
@@ -26,6 +27,7 @@ bool Application::Initialize(int show_command) {
         main_window_ = std::make_unique<MainWindow>(instance_);
         renderer_ = std::make_unique<D3D11Renderer>();
         imgui_layer_ = std::make_unique<ImGuiLayer>();
+        camera_capture_ = std::make_unique<CameraCapture>();
 
         if (!main_window_->Create(L"NohCam", 1280, 720, show_command)) {
             spdlog::error("Failed to create main window.");
@@ -47,6 +49,12 @@ bool Application::Initialize(int show_command) {
             return false;
         }
 
+        if (!camera_capture_->Initialize()) {
+            spdlog::warn("Camera capture initialization failed; the app will continue without live input.");
+        } else if (!camera_capture_->StartDefaultDevice()) {
+            spdlog::warn("Camera capture did not start; see the UI status panel for details.");
+        }
+
         initialized_ = true;
         spdlog::info("Application initialized successfully.");
         return true;
@@ -63,9 +71,27 @@ int Application::Run() {
     }
 
     while (main_window_ && main_window_->ProcessMessages()) {
+        const CameraCapture::StateSnapshot camera_state =
+            camera_capture_ ? camera_capture_->GetStateSnapshot() : CameraCapture::StateSnapshot{};
+
+        if (camera_capture_) {
+            const auto preview_frame = camera_capture_->GetLatestPreviewFrame();
+            if (preview_frame.has_value()) {
+                renderer_->UpdatePreviewTexture(
+                    preview_frame->pixels.data(),
+                    preview_frame->width,
+                    preview_frame->height,
+                    preview_frame->stride);
+            }
+        }
+
         renderer_->BeginFrame();
         imgui_layer_->BeginFrame();
-        imgui_layer_->RenderDemoUi();
+        imgui_layer_->RenderMainUi(
+            camera_state,
+            renderer_->GetPreviewShaderResourceView(),
+            renderer_->GetPreviewWidth(),
+            renderer_->GetPreviewHeight());
         imgui_layer_->Render(renderer_->GetDeviceContext());
         renderer_->EndFrame();
     }
@@ -78,6 +104,10 @@ void Application::Shutdown() {
         imgui_layer_->Shutdown();
     }
 
+    if (camera_capture_) {
+        camera_capture_->Shutdown();
+    }
+
     if (renderer_) {
         renderer_->Shutdown();
     }
@@ -87,6 +117,7 @@ void Application::Shutdown() {
     }
 
     imgui_layer_.reset();
+    camera_capture_.reset();
     renderer_.reset();
     main_window_.reset();
     initialized_ = false;
