@@ -32,26 +32,26 @@ POSE_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 7),
     (0, 4), (4, 5), (5, 6), (6, 8),
     (9, 10),
-    # Shoulders
+    # Shoulders connected
     (11, 12),
-    # Left arm: shoulder -> elbow -> wrist
+    # Left arm: shoulder(11) -> elbow(13) -> wrist(15)
     (11, 13), (13, 15),
-    # Right arm: shoulder -> elbow -> wrist
+    # Right arm: shoulder(12) -> elbow(14) -> wrist(16)
     (12, 14), (14, 16),
-    # Elbows connected
-    (13, 14),
-    # Wrists connected
-    (15, 16),
-    # Left hand
-    (15, 17), (17, 18), (18, 19), (19, 20), (15, 21),
-    # Right hand
-    (16, 22), (22, 23), (23, 24), (24, 25), (16, 26),
-    # Torso
+    # Left hand fingers
+    (15, 17), (17, 18), (18, 19), (19, 20),
+    (15, 21),
+    # Right hand fingers
+    (16, 22), (22, 23), (23, 24), (24, 25),
+    (16, 26),
+    # Torso: shoulders to hips
     (11, 23), (12, 24), (23, 24),
-    # Left leg: hip -> knee -> ankle
-    (23, 25), (25, 27), (27, 29), (29, 31), (31, 32),
-    # Right leg: hip -> knee -> ankle
-    (24, 26), (26, 28), (28, 30), (30, 32), (32, 33),
+    # Left leg: hip(23) -> knee(25) -> ankle(27) -> foot(29,31)
+    (23, 25), (25, 27), (27, 29), (29, 31),
+    (31, 32),
+    # Right leg: hip(24) -> knee(26) -> ankle(28) -> foot(30,32)
+    (24, 26), (26, 28), (28, 30), (30, 32),
+    (32, 33),
 ]
 
 FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 292, 439, 276, 53, 412, 476, 356, 11]
