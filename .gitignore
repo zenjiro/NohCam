@@ -12,3 +12,12 @@ third_party/onnxruntime/**
 src/NohCam.WinUI/bin/
 src/NohCam.WinUI/obj/
 imgui.ini
+
+# Generated files
+*.exe
+*.dll
+*.log
+*.tmp
+*.bak
+winui_out.log
+xaml_build.log
