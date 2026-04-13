@@ -6,16 +6,16 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Title="NohCam">
-    <Grid Background="#F4F6F8">
+    <Grid Background="#1F2937">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Background="#0F172A" Padding="20">
+        <Border Background="#111827" Padding="20">
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <TextBlock Text="NohCam" Foreground="White" FontSize="28" FontWeight="SemiBold" />
-                <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="#CBD5E1" Text="Starting camera..." />
+                <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="#9CA3AF" Text="Starting camera..." />
             </StackPanel>
         </Border>
 
@@ -34,28 +34,28 @@
                     <TextBlock
                         x:Name="PreviewPlaceholderTextBlock"
                         Text="Preview surface"
-                        Foreground="White"
+                        Foreground="#6B7280"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center" />
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20">
+            <Border Grid.Column="1" Background="#111827" CornerRadius="12" Padding="20">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="Camera Status" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" />
-                    <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" />
-                    <Button Content="Restart Preview" Click="RestartPreview_Click" />
+                    <TextBlock Text="Camera Status" FontSize="24" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" Foreground="#9CA3AF" />
+                    <Button x:Name="RestartPreviewButton" Content="Restart Preview" Click="RestartPreview_Click" />
 
-                    <Border Height="1" Background="#E2E8F0" Margin="0,8" />
+                    <Border Height="1" Background="#374151" Margin="0,8" />
 
-                    <TextBlock Text="Face Tracking" FontSize="24" FontWeight="SemiBold" />
-                    <TextBlock x:Name="FaceDetectedTextBlock" Text="Detected: No" />
-                    <TextBlock x:Name="FaceYawTextBlock" Text="Yaw: 0.00" />
-                    <TextBlock x:Name="FacePitchTextBlock" Text="Pitch: 0.00" />
-                    <TextBlock x:Name="FaceRollTextBlock" Text="Roll: 0.00" />
-                    <TextBlock x:Name="FaceCenterTextBlock" Text="Center: (0.50, 0.50)" />
-                    <TextBlock x:Name="BlendshapeCountTextBlock" Text="Blendshapes: 0" />
+                    <TextBlock Text="Face Tracking" FontSize="24" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="FaceDetectedTextBlock" Text="Detected: No" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="FaceYawTextBlock" Text="Yaw: 0.00" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="FacePitchTextBlock" Text="Pitch: 0.00" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="FaceRollTextBlock" Text="Roll: 0.00" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="FaceCenterTextBlock" Text="Center: (0.50, 0.50)" Foreground="#9CA3AF" />
+                    <TextBlock x:Name="BlendshapeCountTextBlock" Text="Blendshapes: 0" Foreground="#9CA3AF" />
                 </StackPanel>
             </Border>
         </Grid>

@@ -14,7 +14,7 @@ NohCam is a Windows desktop application that creates virtual camera output with 
 - **Avatar**: Live2D Cubism SDK for Native 5-r.5
 - **Camera**: Media Foundation (Windows)
 - **Package Manager**: vcpkg
-- **GUI (planned)**: WinUI 3
+- **GUI**: WinUI 3 (.NET 8)
 
 ## Build Commands
 
@@ -22,8 +22,11 @@ NohCam is a Windows desktop application that creates virtual camera output with 
 # C++ backend (requires Developer PowerShell for VS)
 cmake --build build --config Release
 
-# WinUI 3 frontend (when implemented)
+# WinUI 3 frontend
 dotnet build src/NohCam.WinUI/NohCam.WinUI.csproj -c Release
+
+# After C++ build, copy DLLs to WinUI output
+cp build/Release/nohcam_*.dll src/NohCam.WinUI/bin/Release/net8.0-windows10.0.19041.0/
 
 # Tests
 .\build\Release\NohCamOnnxSmokeTest.exe
@@ -64,18 +67,70 @@ dotnet build src/NohCam.WinUI/NohCam.WinUI.csproj -c Release
 
 | Dependency | Version | Location |
 |------------|---------|----------|
-| ONNX Runtime | 1.24.4 | `third_party/onnxruntime/` |
+| ONNX Runtime | 1.23.4 | `third_party/onnxruntime/` |
 | Cubism SDK | 5-r.5 | `CubismSdkForNative-5-r.5/` |
 | ONNX Models | - | `assets/onnx/` |
 | Live2D Models | - | `assets/models/` |
 
 ## Current Development Phase
 
-Phase 1 complete (build environment, DX11 init, camera input). Phase 2 in progress (tracking integration).
+Phase 1-2 complete (build environment, DX11 init, camera input, ONNX face tracking). WinUI 3 face tracking integration working with dark theme UI.
+
+## UI Theme
+
+Dark theme with the following color palette:
+- Background: `#1F2937` (gray-900)
+- Surface: `#111827` (gray-900 variant)
+- Text Primary: `White`
+- Text Secondary: `#9CA3AF` (gray-400)
+- Border/Divider: `#374151` (gray-700)
+- Placeholder: `#6B7280` (gray-500)
+
+## WinUI 3 Integration Notes
+
+### ONNX Runtime DLL Conflict
+
+Windows System32 contains `onnxruntime.dll` v1.17.1 which conflicts with our v1.23.4 build.
+
+**Solution:**
+1. Rename our ONNX Runtime DLL: `onnxruntime.dll` → `nohcam_onnxruntime.dll`
+2. Use delay-load with custom hook in `FaceTrackerBridge.cpp` to load from app directory
+
+### Camera Frame Format
+
+Most webcams support NV12/MJPG/YUY2, not BGRA8.
+
+**Solution:**
+1. Set `MemoryPreference = MediaCaptureMemoryPreference.Cpu` to get SoftwareBitmap
+2. Request NV12 format: `_mediaCapture.CreateFrameReaderAsync(frameSource, "NV12")`
+3. Convert to BGRA8: `SoftwareBitmap.Convert(bitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore)`
+4. Copy pixels: `bitmap.CopyToBuffer(pixelData.AsBuffer())`
+
+### P/Invoke Pixel Data
+
+`IMemoryBufferByteAccess` COM interface cast fails with WinRT types.
+
+**Solution:**
+- Use `CopyToBuffer()` + `byte[]` array instead of raw pointer access
+- P/Invoke signature: `bool FaceTracker_Track(byte[] pixels, ...)`
 
 ## Important Notes
 
-- ONNX Runtime must be manually placed in `third_party/onnxruntime/` as prebuilt package
-- DirectML requires Windows SDK linkage
+- ONNX Runtime DLL must be renamed to `nohcam_onnxruntime.dll` to avoid System32 conflict
+- Copy `nohcam_onnxruntime.dll` and `nohcam_bridge.dll` to WinUI output directory
 - Cubism SDK must be extracted to project root
 - All paths use backslash on Windows (handled by CMake PATH variables)
+
+## Troubleshooting
+
+### XamlCompiler Fails with Exit Code 1
+
+If the XAML compiler fails with exit code 1 during incremental builds, do a clean build:
+
+```powershell
+cd src/NohCam.WinUI
+rm -rf obj bin
+dotnet build -c Release
+```
+
+This clears the corrupted incremental build state and rebuilds from scratch.

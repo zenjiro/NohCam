@@ -110,9 +110,26 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
     const int target_width = face_input_width_ > 0 ? face_input_width_ : static_cast<int>(capture_frame.width);
     const int target_height = face_input_height_ > 0 ? face_input_height_ : static_cast<int>(capture_frame.height);
     const int target_channels = face_input_channels_ > 0 ? face_input_channels_ : 3;
+    
+    static int track_counter = 0;
+    const bool is_debug = (++track_counter % 60 == 0);
+    if (is_debug) {
+        spdlog::info("FaceTracker::Track: input={} target={}x{}x{} layout={} frame={}x{}", 
+            input_name, target_width, target_height, target_channels,
+            (int)face_input_layout_, capture_frame.width, capture_frame.height);
+    }
+
     auto input_values = PreprocessFrame(capture_frame, target_width, target_height, target_channels, face_input_layout_);
     if (input_values.empty()) {
+        spdlog::warn("FaceTracker::Track: PreprocessFrame returned empty");
         return last_result_;
+    }
+
+    if (is_debug) {
+        spdlog::info("FaceTracker::Track: preprocessed {} values, first 6: {},{},{},{},{},{}", 
+            input_values.size(),
+            input_values[0], input_values[1], input_values[2],
+            input_values[3], input_values[4], input_values[5]);
     }
 
     OnnxSession::TensorData input_tensor;
@@ -126,6 +143,7 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
 
     const auto face_outputs = face_session_->Run({input_tensor});
     if (face_outputs.size() < 2) {
+        spdlog::warn("FaceTracker::Track: unexpected output count {}", face_outputs.size());
         return last_result_;
     }
 
@@ -134,8 +152,22 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
 
     constexpr float kFacePresenceThreshold = 0.5f;
     const float face_score = classificators_output.values.empty() ? 1.0f : classificators_output.values[0];
+    if (is_debug) {
+        spdlog::info("FaceTracker::Track: face_score={} threshold={}", face_score, kFacePresenceThreshold);
+    }
+    
     if (face_score < kFacePresenceThreshold) {
         return last_result_;
+    }
+
+    if (is_debug) {
+        spdlog::info("FaceTracker::Track: regressors values={}", regressors_output.values.size());
+        if (!regressors_output.values.empty()) {
+            spdlog::info("FaceTracker::Track: first 6 regressors: {},{},{},{},{},{}",
+                regressors_output.values[0], regressors_output.values[1],
+                regressors_output.values[2], regressors_output.values[3],
+                regressors_output.values[4], regressors_output.values[5]);
+        }
     }
 
     last_result_ = ParseFaceOutput(regressors_output.values);
@@ -351,6 +383,18 @@ FaceResult FaceTracker::ParseFaceOutput(const std::vector<float>& output_values)
     if (eye_dist > 0.001f) {
         result.yaw = (nose.x - (left_eye.x + right_eye.x) * 0.5f) / eye_dist * 45.0f;
         result.pitch = (nose.y - (left_eye.y + right_eye.y) * 0.5f) / eye_dist * 45.0f;
+        
+        // Calculate roll from eye angle
+        float dx = right_eye.x - left_eye.x;
+        float dy = right_eye.y - left_eye.y;
+        result.roll = std::atan2(dy, dx) * 180.0f / 3.14159265f;
+        
+        // Log every 60 frames
+        static int log_counter = 0;
+        if (++log_counter % 60 == 0) {
+            spdlog::info("Head pose: yaw={:.2f} pitch={:.2f} roll={:.2f}", 
+                result.yaw, result.pitch, result.roll);
+        }
     }
 
     return result;

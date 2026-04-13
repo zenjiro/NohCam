@@ -161,6 +161,10 @@ if(TARGET nohcam_onnxruntime)
             spdlog::spdlog
     )
 
+    if(MSVC)
+        target_link_options(nohcam_tracking PRIVATE /DELAYLOAD:onnxruntime.dll /DELAYLOAD:onnxruntime_providers_shared.dll)
+    endif()
+
     if(NOHCAM_ENABLE_DIRECTML AND NOHCAM_DIRECTML_LIBRARY)
         target_link_libraries(nohcam_tracking PUBLIC "${NOHCAM_DIRECTML_LIBRARY}")
         target_compile_definitions(nohcam_tracking PUBLIC NOHCAM_HAS_DIRECTML=1)
@@ -172,6 +176,10 @@ if(TARGET nohcam_onnxruntime)
     )
     target_compile_definitions(nohcam_bridge PRIVATE NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}")
     target_link_libraries(nohcam_bridge PRIVATE nohcam_tracking)
+    
+    if(MSVC)
+        target_link_options(nohcam_bridge PRIVATE /DELAYLOAD:onnxruntime.dll /DELAYLOAD:onnxruntime_providers_shared.dll)
+    endif()
     
     if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
         add_custom_command(TARGET nohcam_bridge POST_BUILD

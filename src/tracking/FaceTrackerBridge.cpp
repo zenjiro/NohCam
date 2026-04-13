@@ -2,9 +2,52 @@
 #include <memory>
 #include <mutex>
 #include <cstring>
-#include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <Windows.h>
+
+#define DELAYIMP_INSECURE_WRITABLE_HOOKS
+#include <delayimp.h>
+
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
+namespace {
+    HMODULE g_loaded_onnx_module = nullptr;
+}
+
+static FARPROC WINAPI MyDelayLoadHook(unsigned dliNotify, PDelayLoadInfo pdli) {
+    if (dliNotify == dliNotePreLoadLibrary) {
+        const char* dll_name = pdli->szDll;
+        
+        if (strcmp(dll_name, "onnxruntime.dll") == 0 || 
+            strcmp(dll_name, "onnxruntime_providers_shared.dll") == 0) {
+            
+            wchar_t module_path[MAX_PATH];
+            if (GetModuleFileNameW(nullptr, module_path, MAX_PATH) == 0) {
+                return nullptr;
+            }
+            
+            std::wstring dll_dir = module_path;
+            size_t lastslash = dll_dir.find_last_of(L"\\/");
+            if (lastslash != std::wstring::npos) {
+                dll_dir = dll_dir.substr(0, lastslash + 1);
+            }
+            
+            std::wstring full_path = dll_dir + L"nohcam_onnxruntime.dll";
+            HMODULE h = LoadLibraryExW(full_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+            
+            if (h && strcmp(dll_name, "onnxruntime.dll") == 0) {
+                g_loaded_onnx_module = h;
+            }
+            
+            return reinterpret_cast<FARPROC>(h);
+        }
+    }
+    return nullptr;
+}
+
+extern "C" PfnDliHook __pfnDliNotifyHook2 = MyDelayLoadHook;
 
 #ifdef _WIN32
 #define EXPORT extern "C" __declspec(dllexport)
@@ -16,15 +59,32 @@ namespace {
     std::unique_ptr<nohcam::FaceTracker> g_face_tracker;
     std::mutex g_face_tracker_mutex;
     std::string g_init_error;
+    bool g_logger_initialized = false;
+
+    void EnsureLoggerInitialized() {
+        if (!g_logger_initialized) {
+            try {
+                auto file_sink = spdlog::basic_logger_mt("nohcam_bridge", "nohcam_bridge.log", true);
+                spdlog::set_default_logger(file_sink);
+                spdlog::set_level(spdlog::level::info);
+                spdlog::set_pattern("%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+                g_logger_initialized = true;
+            } catch (...) {
+            }
+        }
+    }
 }
 
 EXPORT bool FaceTracker_Initialize() {
+    EnsureLoggerInitialized();
+    
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     if (!g_face_tracker) {
         g_face_tracker = std::make_unique<nohcam::FaceTracker>();
     }
     g_init_error.clear();
     bool success = g_face_tracker->Initialize(&g_init_error);
+    spdlog::info("FaceTracker_Initialize result: {}", success);
     return success;
 }
 
@@ -53,10 +113,18 @@ EXPORT bool FaceTracker_Track(
     float* x,
     float* y,
     int* blendshape_count,
-    float* blendshapes) {
+    float* blendshapes,
+    int blendshape_capacity) {
 
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     if (!g_face_tracker || !g_face_tracker->IsInitialized()) {
+        spdlog::error("FaceTracker_Track: not initialized");
+        return false;
+    }
+
+    if (!pixels || width == 0 || height == 0) {
+        spdlog::error("FaceTracker_Track: invalid frame params w={} h={} stride={}", 
+            width, height, stride);
         return false;
     }
 
@@ -75,10 +143,20 @@ EXPORT bool FaceTracker_Track(
     *roll = result.roll;
     *x = result.x;
     *y = result.y;
-    *blendshape_count = static_cast<int>(result.blendshapes.size());
+    const int output_count = static_cast<int>(result.blendshapes.size());
+    const int safe_capacity = std::max(0, blendshape_capacity);
+    const int copied_count = std::min(output_count, safe_capacity);
+    *blendshape_count = copied_count;
 
-    if (blendshapes && !result.blendshapes.empty()) {
-        std::copy(result.blendshapes.begin(), result.blendshapes.end(), blendshapes);
+    if (blendshapes && copied_count > 0) {
+        std::copy_n(result.blendshapes.begin(), copied_count, blendshapes);
+    }
+
+    // Log every 60 frames
+    static int log_counter = 0;
+    if (++log_counter % 60 == 0) {
+        spdlog::info("FaceTracker_Track: detected={} yaw={:.2f} pitch={:.2f} roll={:.2f} x={:.3f} y={:.3f} blendshapes={}", 
+            *detected, *yaw, *pitch, *roll, *x, *y, *blendshape_count);
     }
 
     return true;
