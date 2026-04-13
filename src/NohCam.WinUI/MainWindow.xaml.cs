@@ -9,6 +9,7 @@ using Windows.Graphics.Imaging;
 using System.IO;
 using Windows.Storage.Streams;
 using System.Threading;
+using Windows.Media.MediaProperties;
 
 namespace NohCam.WinUI;
 
@@ -166,6 +167,17 @@ public sealed partial class MainWindow : Window
                 throw new InvalidOperationException("No color frame source is available.");
             }
 
+            var selectedFormat = SelectHighFpsFormat(frameSource);
+            if (selectedFormat is not null && frameSource.CurrentFormat != selectedFormat)
+            {
+                await frameSource.SetFormatAsync(selectedFormat);
+                Log($"StartPreviewAsync: selected format {DescribeFormat(selectedFormat)}");
+            }
+            else
+            {
+                Log($"StartPreviewAsync: using current format {DescribeFormat(frameSource.CurrentFormat)}");
+            }
+
             // FrameReader with default format for tracking
             _frameReader = await _mediaCapture.CreateFrameReaderAsync(frameSource);
             _frameReader.FrameArrived += FrameReader_FrameArrived;
@@ -209,8 +221,10 @@ public sealed partial class MainWindow : Window
     private readonly object _logLock = new object();
     private System.Diagnostics.Stopwatch _trackTimer = System.Diagnostics.Stopwatch.StartNew();
     private int _isTracking = 0;
-    private readonly int _trackIntervalMs = 500; // Only track every 500ms (~2 fps)
+    private readonly int _trackIntervalMs = 33; // Target ~30 fps tracking
     private byte[]? _trackingPixelBuffer;
+    private System.Diagnostics.Stopwatch _trackFpsTimer = System.Diagnostics.Stopwatch.StartNew();
+    private int _trackCallCount = 0;
 
     private void InitLogger()
     {
@@ -302,9 +316,18 @@ public sealed partial class MainWindow : Window
                         _blendshapes,
                         _blendshapes.Length);
                     sw.Stop();
+                    Interlocked.Increment(ref _trackCallCount);
                     if (sw.ElapsedMilliseconds > 300)
                     {
                         Log($"FaceTracker_Track took {sw.ElapsedMilliseconds}ms");
+                    }
+                    if (_trackFpsTimer.ElapsedMilliseconds >= 1000)
+                    {
+                        var elapsedMs = _trackFpsTimer.ElapsedMilliseconds;
+                        var count = Interlocked.Exchange(ref _trackCallCount, 0);
+                        var tps = elapsedMs > 0 ? count * 1000.0 / elapsedMs : 0;
+                        Log($"Tracking FPS={tps:F1}");
+                        _trackFpsTimer.Restart();
                     }
 
                     if (success)
@@ -394,5 +417,56 @@ public sealed partial class MainWindow : Window
             PreviewStateTextBlock.Text = $"Preview: {args.ErrorMessage}";
             PreviewPlaceholderTextBlock.Visibility = Visibility.Visible;
         });
+    }
+
+    private static MediaFrameFormat? SelectHighFpsFormat(MediaFrameSource source)
+    {
+        var formats = source.SupportedFormats
+            .Where(f => f.VideoFormat is not null)
+            .ToList();
+        if (formats.Count == 0)
+        {
+            return null;
+        }
+
+        // Prefer Full HD (1920x1080) and fps near 30.
+        // Fallback: choose format closest to 30 fps with larger resolution.
+        var target = formats
+            .Select(f => new
+            {
+                Format = f,
+                Fps = GetFps(f),
+                Width = (int)f.VideoFormat!.Width,
+                Height = (int)f.VideoFormat.Height,
+                Pixels = (long)f.VideoFormat.Width * f.VideoFormat.Height
+            })
+            .OrderByDescending(x => x.Width == 1920 && x.Height == 1080 ? 1 : 0)
+            .ThenBy(x => Math.Abs(x.Fps - 30.0))
+            .ThenByDescending(x => x.Pixels)
+            .FirstOrDefault();
+
+        return target?.Format;
+    }
+
+    private static double GetFps(MediaFrameFormat format)
+    {
+        var rate = format.FrameRate;
+        if (rate is null || rate.Denominator == 0)
+        {
+            return 0;
+        }
+
+        return (double)rate.Numerator / rate.Denominator;
+    }
+
+    private static string DescribeFormat(MediaFrameFormat? format)
+    {
+        if (format?.VideoFormat is null)
+        {
+            return "(unknown)";
+        }
+
+        var fps = GetFps(format);
+        return $"{format.VideoFormat.Width}x{format.VideoFormat.Height} {format.Subtype} {fps:F1}fps";
     }
 }
