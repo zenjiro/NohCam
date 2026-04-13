@@ -95,11 +95,41 @@ public sealed partial class MainWindow : Window
         out float rightWristY,
         out float rightWristZ);
 
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_GetHandLandmarks(bool left, float[] landmarks21xyz);
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_GetFaceLandmarks(float[] landmarks478xyz);
+
     private readonly float[] _poseLandmarks = new float[33 * 3];
     private readonly float[] _poseVisibility = new float[33];
     private readonly float[] _posePresence = new float[33];
 
+    private readonly float[] _faceLandmarks = new float[478 * 3];
+    private readonly float[] _leftHandLandmarks = new float[21 * 3];
+    private readonly float[] _rightHandLandmarks = new float[21 * 3];
+
     private readonly float[] _blendshapes = new float[128];
+
+    // Landmark connections for rendering
+    private static readonly (int, int)[] HandConnections = new[] {
+        (0, 1), (1, 2), (2, 3), (3, 4),
+        (0, 5), (5, 6), (6, 7), (7, 8),
+        (5, 9), (9, 10), (10, 11), (11, 12),
+        (9, 13), (13, 14), (14, 15), (15, 16),
+        (13, 17), (17, 18), (18, 19), (19, 20),
+    };
+
+    private static readonly (int, int)[] PoseConnections = new[] {
+        (0, 1), (1, 2), (2, 3), (3, 7),
+        (0, 4), (4, 5), (5, 6), (6, 8),
+        (9, 10), (11, 12),
+        (11, 13), (13, 15), (15, 17), (15, 19), (15, 21), (17, 19),
+        (12, 14), (14, 16), (16, 18), (16, 20), (16, 22), (18, 20),
+        (11, 23), (12, 24), (23, 24),
+        (23, 25), (24, 26), (25, 27), (26, 28),
+        (27, 29), (28, 30), (29, 31), (30, 32), (27, 31), (28, 32),
+    };
 
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -303,38 +333,105 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private double _videoWidth = 640;
+    private double _videoHeight = 480;
+
+    private void UpdateOverlay(bool faceOk, bool poseOk, bool leftOk, bool rightOk)
+    {
+        if (OverlayCanvas == null) return;
+
+        double controlWidth = PreviewElement.ActualWidth;
+        double controlHeight = PreviewElement.ActualHeight;
+        if (controlWidth == 0 || controlHeight == 0) return;
+
+        double scale = Math.Min(controlWidth / _videoWidth, controlHeight / _videoHeight);
+        double actualW = _videoWidth * scale;
+        double actualH = _videoHeight * scale;
+        double offsetX = (controlWidth - actualW) / 2;
+        double offsetY = (controlHeight - actualH) / 2;
+
+        OverlayCanvas.Children.Clear();
+
+        // 1. Pose
+        if (poseOk)
+        {
+            foreach (var (i, j) in PoseConnections)
+            {
+                if (i < 33 && j < 33)
+                    DrawLine(i, j, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+            }
+            for (int i = 0; i < 33; i++)
+                DrawPoint(i, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+        }
+
+        // 2. Hands
+        if (leftOk)
+        {
+            foreach (var (i, j) in HandConnections)
+                DrawLine(i, j, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+            for (int i = 0; i < 21; i++)
+                DrawPoint(i, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+        }
+        if (rightOk)
+        {
+            foreach (var (i, j) in HandConnections)
+                DrawLine(i, j, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+            for (int i = 0; i < 21; i++)
+                DrawPoint(i, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+        }
+
+        // 3. Face
+        if (faceOk)
+        {
+            for (int i = 0; i < 478; i++)
+                DrawPoint(i, _faceLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 2);
+        }
+    }
+
+    private void DrawLine(int idx1, int idx2, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double thickness)
+    {
+        double x1 = landmarks[idx1 * 3 + 0] * _videoWidth * scale + ox;
+        double y1 = landmarks[idx1 * 3 + 1] * _videoHeight * scale + oy;
+        double x2 = landmarks[idx2 * 3 + 0] * _videoWidth * scale + ox;
+        double y2 = landmarks[idx2 * 3 + 1] * _videoHeight * scale + oy;
+
+        var line = new Microsoft.UI.Xaml.Shapes.Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = new SolidColorBrush(color), StrokeThickness = thickness };
+        OverlayCanvas.Children.Add(line);
+    }
+
+    private void DrawPoint(int idx, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double size)
+    {
+        double x = landmarks[idx * 3 + 0] * _videoWidth * scale + ox;
+        double y = landmarks[idx * 3 + 1] * _videoHeight * scale + oy;
+        var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = size, Height = size, Fill = new SolidColorBrush(color) };
+        Canvas.SetLeft(dot, x - size / 2); Canvas.SetTop(dot, y - size / 2);
+        OverlayCanvas.Children.Add(dot);
+    }
+
     private void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
         _debugFrameCount++;
         _fpsFrameCount++;
 
-        // Log every 30 frames
         if (_debugFrameCount % 30 == 0) {
             var elapsed = _fpsTimer.ElapsedMilliseconds;
             double fps = elapsed > 0 ? _fpsFrameCount * 1000.0 / elapsed : 0;
             Log($"Frame #{_debugFrameCount}: FPS={fps:F1}");
         }
 
-        // Track only on interval and never overlap native tracking calls.
-        if (_trackTimer.ElapsedMilliseconds < _trackIntervalMs) {
-            return;
-        }
-
-        if (Interlocked.CompareExchange(ref _isTracking, 1, 0) != 0) {
-            return;
-        }
-
+        if (_trackTimer.ElapsedMilliseconds < _trackIntervalMs) return;
+        if (Interlocked.CompareExchange(ref _isTracking, 1, 0) != 0) return;
         _trackTimer.Restart();
 
         try
         {
             using var frame = sender.TryAcquireLatestFrame();
-            if (frame?.VideoMediaFrame?.SoftwareBitmap is null) {
-                return;
-            }
+            if (frame?.VideoMediaFrame?.SoftwareBitmap is null) return;
+
+            _videoWidth = frame.VideoMediaFrame.VideoFormat.Width;
+            _videoHeight = frame.VideoMediaFrame.VideoFormat.Height;
 
             using var bitmap = SoftwareBitmap.Convert(frame.VideoMediaFrame.SoftwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore);
-
             int width = bitmap.PixelWidth;
             int height = bitmap.PixelHeight;
             int requiredSize = width * height * 4;
@@ -348,124 +445,54 @@ public sealed partial class MainWindow : Window
             bitmap.CopyToBuffer(_trackingPixelBuffer.AsBuffer());
             var pixelData = _trackingPixelBuffer;
 
-            // Run native tracking off-thread to keep frame callbacks responsive.
             _ = Task.Run(() =>
             {
                 try
                 {
-                    var sw = System.Diagnostics.Stopwatch.StartNew();
-                    bool faceDetected = false;
-                    float yaw = 0, pitch = 0, roll = 0, x = 0, y = 0;
+                    bool faceDetected = false, poseDetected = false, leftHandDetected = false, rightHandDetected = false;
+                    float yaw = 0, pitch = 0, roll = 0, x = 0, y = 0, poseScore = 0;
                     int blendshapeCount = 0;
 
-                    bool poseDetected = false;
-                    float poseScore = 0;
-
-                    bool leftHandDetected = false, rightHandDetected = false;
-                    float leftWristX = 0, leftWristY = 0, leftWristZ = 0;
-                    float rightWristX = 0, rightWristY = 0, rightWristZ = 0;
-
-                    bool trackAllSuccess = FaceTracker_TrackAll(
-                        pixelData,
-                        (uint)width,
-                        (uint)height,
-                        (uint)(width * 4));
-
-                    if (trackAllSuccess)
+                    if (FaceTracker_TrackAll(pixelData, (uint)width, (uint)height, (uint)(width * 4)))
                     {
-                        FaceTracker_GetFaceResult(
-                            out faceDetected,
-                            out yaw,
-                            out pitch,
-                            out roll,
-                            out x,
-                            out y,
-                            out blendshapeCount,
-                            _blendshapes,
-                            _blendshapes.Length);
-
-                        FaceTracker_GetPoseResult(
-                            out poseDetected,
-                            out poseScore,
-                            _poseLandmarks,
-                            _poseVisibility,
-                            _posePresence);
-
-                        FaceTracker_GetHandResult(
-                            out leftHandDetected,
-                            out leftWristX,
-                            out leftWristY,
-                            out leftWristZ,
-                            out rightHandDetected,
-                            out rightWristX,
-                            out rightWristY,
-                            out rightWristZ);
+                        FaceTracker_GetFaceResult(out faceDetected, out yaw, out pitch, out roll, out x, out y, out blendshapeCount, _blendshapes, _blendshapes.Length);
+                        FaceTracker_GetPoseResult(out poseDetected, out poseScore, _poseLandmarks, _poseVisibility, _posePresence);
+                        
+                        leftHandDetected = FaceTracker_GetHandLandmarks(true, _leftHandLandmarks);
+                        rightHandDetected = FaceTracker_GetHandLandmarks(false, _rightHandLandmarks);
+                        FaceTracker_GetFaceLandmarks(_faceLandmarks);
                     }
 
-                    if (++_handLogCounter % 30 == 0)
-                    {
-                        Log($"Tracking: success={trackAllSuccess} face={faceDetected} pose={poseDetected} left={leftHandDetected} right={rightHandDetected}");
-                    }
-                    sw.Stop();
+                    if (++_handLogCounter % 30 == 0) Log($"Tracking: success=True face={faceDetected} pose={poseDetected} left={leftHandDetected} right={rightHandDetected}");
+
                     Interlocked.Increment(ref _trackCallCount);
-
-                    if (_trackFpsTimer.ElapsedMilliseconds >= 1000)
-                    {
-                        var elapsedMs = _trackFpsTimer.ElapsedMilliseconds;
-                        var count = Interlocked.Exchange(ref _trackCallCount, 0);
-                        var tps = elapsedMs > 0 ? count * 1000.0 / elapsedMs : 0;
-                        Log($"Tracking FPS={tps:F1}");
-                        _trackFpsTimer.Restart();
+                    if (_trackFpsTimer.ElapsedMilliseconds >= 1000) {
+                        Log($"Tracking FPS={_trackCallCount * 1000.0 / _trackFpsTimer.ElapsedMilliseconds:F1}");
+                        _trackCallCount = 0; _trackFpsTimer.Restart();
                     }
 
-                    if (trackAllSuccess)
+                    _ = DispatcherQueue.TryEnqueue(() =>
                     {
-                        _ = DispatcherQueue.TryEnqueue(() =>
-                        {
-                            FaceDetectedTextBlock.Text = $"Detected: {(faceDetected ? "Yes" : "No")}";
-                            if (faceDetected)
-                            {
-                                FaceYawTextBlock.Text = $"Yaw: {yaw:F2}";
-                                FacePitchTextBlock.Text = $"Pitch: {pitch:F2}";
-                                FaceRollTextBlock.Text = $"Roll: {roll:F2}";
-                                FaceCenterTextBlock.Text = $"Center: ({x:F2}, {y:F2})";
-                                BlendshapeCountTextBlock.Text = $"Blendshapes: {blendshapeCount}";
-                            }
+                        FaceDetectedTextBlock.Text = $"Detected: {(faceDetected ? "Yes" : "No")}";
+                        if (faceDetected) {
+                            FaceYawTextBlock.Text = $"Yaw: {yaw:F2}"; FacePitchTextBlock.Text = $"Pitch: {pitch:F2}"; FaceRollTextBlock.Text = $"Roll: {roll:F2}";
+                            FaceCenterTextBlock.Text = $"Center: ({x:F2}, {y:F2})"; BlendshapeCountTextBlock.Text = $"Blendshapes: {blendshapeCount}";
+                        }
+                        PoseDetectedTextBlock.Text = $"Detected: {(poseDetected ? "Yes" : "No")}";
+                        PoseScoreTextBlock.Text = $"Score: {poseScore:F2}";
+                        
+                        UpdateOverlay(faceDetected, poseDetected, leftHandDetected, rightHandDetected);
 
-                            PoseDetectedTextBlock.Text = $"Detected: {(poseDetected ? "Yes" : "No")}";
-                            PoseScoreTextBlock.Text = $"Score: {poseScore:F2}";
-                            if (poseDetected)
-                            {
-                                // Landmark 15 is Left Wrist, 16 is Right Wrist
-                                float lwX = _poseLandmarks[15 * 3 + 0];
-                                float lwY = _poseLandmarks[15 * 3 + 1];
-                                float rwX = _poseLandmarks[16 * 3 + 0];
-                                float rwY = _poseLandmarks[16 * 3 + 1];
-                                PoseWristsTextBlock.Text = $"Wrists (L/R): ({lwX:F2}, {lwY:F2}) / ({rwX:F2}, {rwY:F2})";
-                            }
-
-                            LeftHandDetectedTextBlock.Text = $"Left: {(leftHandDetected ? "Yes" : "No")}";
-                            LeftWristTextBlock.Text = $"Left Wrist: ({leftWristX:F2}, {leftWristY:F2}, {leftWristZ:F2})";
-                            RightHandDetectedTextBlock.Text = $"Right: {(rightHandDetected ? "Yes" : "No")}";
-                            RightWristTextBlock.Text = $"Right Wrist: ({rightWristX:F2}, {rightWristY:F2}, {rightWristZ:F2})";
-                        });
-                    }
+                        LeftHandDetectedTextBlock.Text = $"Left: {(leftHandDetected ? "Yes" : "No")}";
+                        RightHandDetectedTextBlock.Text = $"Right: {(rightHandDetected ? "Yes" : "No")}";
+                    });
                 }
-                catch (Exception ex)
-                {
-                    Log($"FaceTracker error: {ex.Message}");
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _isTracking, 0);
-                }
+                catch (Exception ex) { Log($"FaceTracker error: {ex.Message}"); }
+                finally { Interlocked.Exchange(ref _isTracking, 0); }
             });
         }
-        catch (Exception ex)
-        {
-            Log($"Frame processing error: {ex.Message}");
-            Interlocked.Exchange(ref _isTracking, 0);
-        }
+        catch (Exception ex) { Log($"Frame processing error: {ex.Message}"); Interlocked.Exchange(ref _isTracking, 0); }
+    }
     }
 
     private async void OnClosed(object sender, WindowEventArgs args)

@@ -189,6 +189,39 @@ EXPORT bool FaceTracker_GetHandResult(
     return true;
 }
 
+EXPORT bool FaceTracker_GetHandLandmarks(
+    bool left,
+    float* landmarks_21_xyz) {
+
+    std::lock_guard<std::mutex> lock(g_tracker_mutex);
+    const auto& hand = left ? g_last_result.left_hand : g_last_result.right_hand;
+    if (!hand.detected || !landmarks_21_xyz) {
+        return false;
+    }
+    for (int i = 0; i < 21; ++i) {
+        landmarks_21_xyz[i * 3 + 0] = hand.landmarks[i].x;
+        landmarks_21_xyz[i * 3 + 1] = hand.landmarks[i].y;
+        landmarks_21_xyz[i * 3 + 2] = hand.landmarks[i].z;
+    }
+    return true;
+}
+
+EXPORT bool FaceTracker_GetFaceLandmarks(
+    float* landmarks_478_xyz) {
+
+    std::lock_guard<std::mutex> lock(g_tracker_mutex);
+    const auto& face = g_last_result.face;
+    if (!face.detected || !landmarks_478_xyz) {
+        return false;
+    }
+    for (int i = 0; i < 478; ++i) {
+        landmarks_478_xyz[i * 3 + 0] = face.landmarks[i].x;
+        landmarks_478_xyz[i * 3 + 1] = face.landmarks[i].y;
+        landmarks_478_xyz[i * 3 + 2] = face.landmarks[i].z;
+    }
+    return true;
+}
+
 EXPORT bool FaceTracker_GetPoseResult(
     bool* detected,
     float* score,

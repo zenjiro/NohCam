@@ -31,6 +31,7 @@
                         x:Name="PreviewElement"
                         AreTransportControlsEnabled="False"
                         Stretch="Uniform" />
+                    <Canvas x:Name="OverlayCanvas" Background="Transparent" IsHitTestVisible="False" />
                     <TextBlock
                         x:Name="PreviewPlaceholderTextBlock"
                         Text="Preview surface"
