@@ -165,7 +165,12 @@ NohCam/
 
 - **実行方法**
   - **メイン GUI (WinUI 3):**
-    `.\src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\NohCam.WinUI.exe`
+    ※ 実行前に、System32 の `onnxruntime.dll` との衝突を回避するため、ONNX DLL のリネームコピーと各種ブリッジ DLL の配置が必要です。
+    ```powershell
+    Copy-Item -Path build\Release\nohcam_*.dll -Destination src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\ -Force
+    Copy-Item -Path build\Release\onnxruntime.dll -Destination src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\nohcam_onnxruntime.dll -Force
+    Start-Process -FilePath src\NohCam.WinUI\bin\Release\net8.0-windows10.0.19041.0\NohCam.WinUI.exe
+    ```
   - **バックエンド本体 (Win32):**
     `.\build\Release\NohCam.exe`
 
