@@ -20,33 +20,24 @@ WindowHeight = 720
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),
     (0, 5), (5, 6), (6, 7), (7, 8),
-    (0, 9), (9, 10), (10, 11), (11, 12),
-    (0, 13), (13, 14), (14, 15), (15, 16),
-    (0, 17), (17, 18), (18, 19), (19, 20),
-    (5, 9), (9, 13), (13, 17),
+    (5, 9), (9, 10), (10, 11), (11, 12),
+    (9, 13), (13, 14), (14, 15), (15, 16),
+    (13, 17), (17, 18), (18, 19), (19, 20),
 ]
 
 POSE_CONNECTIONS = [
-    # Face (nose to eyes)
     (0, 1), (1, 2), (2, 3), (3, 7),
     (0, 4), (4, 5), (5, 6), (6, 8),
     (9, 10),
-    # Shoulders
     (11, 12),
-    # Left arm: shoulder(11) -> elbow(13) -> wrist(15)
-    (11, 13), (13, 15),
-    # Right arm: shoulder(12) -> elbow(14) -> wrist(16)
-    (12, 14), (14, 16),
-    # Left hand: wrist(15) -> pinky(17), index(18), thumb(19)
-    (15, 17), (15, 18), (15, 19),
-    # Right hand: wrist(16) -> pinky(20), index(21), thumb(22)
-    (16, 20), (16, 21), (16, 22),
-    # Torso: shoulders to hips
+    (11, 13), (13, 15), (15, 17), (15, 19), (15, 21), (17, 19),
+    (12, 14), (14, 16), (16, 18), (16, 20), (16, 22), (18, 20),
     (11, 23), (12, 24), (23, 24),
-    # Left leg: hip(23) -> knee(25) -> ankle(27) -> heel(29) -> foot(31)
-    (23, 25), (25, 27), (27, 29), (29, 31),
-    # Right leg: hip(24) -> knee(26) -> ankle(28) -> heel(30) -> foot(32)
-    (24, 26), (26, 28), (28, 30), (30, 32),
+    (23, 25), (24, 26),
+    (25, 27), (26, 28),
+    (27, 29), (28, 30),
+    (29, 31), (30, 32),
+    (27, 31), (28, 32),
 ]
 
 FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 292, 439, 276, 53, 412, 476, 356, 11]
@@ -70,7 +61,6 @@ class MainFrame(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.canvas = wx.Panel(panel, size=wx.Size(WindowWidth, WindowHeight))
-        self.canvas.Bind(wx.EVT_PAINT, self._on_paint)
         sizer.Add(self.canvas, proportion=1, flag=wx.EXPAND)
 
         panel.SetSizer(sizer)
@@ -97,10 +87,6 @@ class MainFrame(wx.Frame):
 
         self.capture_timer.Start(1000 // CameraFps)
 
-    def _on_toggle_tracking(self, event):
-        self.tracking_enabled = not self.tracking_enabled
-        self.tracking_btn.SetLabel(f"Tracking: {'ON' if self.tracking_enabled else 'OFF'}")
-
     def _on_timer(self, event):
         ret, frame = self.cap.read()
         if not ret:
@@ -111,44 +97,32 @@ class MainFrame(wx.Frame):
 
         timestamp_ms = int(self.frame_count * 1000 / CameraFps)
 
-        if self.tracking_enabled:
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-            self.latest_result = self.detector.detect_for_video(mp_image, timestamp_ms)
-        else:
-            self.latest_result = None
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        self.latest_result = self.detector.detect_for_video(mp_image, timestamp_ms)
 
-        now = cv2.getTickCount()
-        if self.last_frame_time > 0:
-            delta = (now - self.last_frame_time) / cv2.getTickFrequency()
-            if delta > 0:
-                self.fps_meter.append(1.0 / delta)
-        self.last_frame_time = now
+        wx.CallAfter(self._update_display)
 
-        self.canvas.Refresh()
-
-    def _on_paint(self, event):
-        dc = wx.PaintDC(self.canvas)
-        dc.Clear()
-
+    def _update_display(self):
         if self.current_frame is None:
             return
 
         frame = self.current_frame.copy()
 
-        if self.tracking_enabled and self.latest_result:
+        if self.latest_result:
             frame = self._draw_overlays(frame, self.latest_result)
 
         h, w = frame.shape[:2]
         bmp = wx.Bitmap.FromBufferRGBA(w, h, cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA))
 
-        x = (self.canvas.GetSize().x - w) // 2
-        y = (self.canvas.GetSize().y - h) // 2
-        dc.DrawBitmap(bmp, x, y)
+        cw, ch = self.canvas.GetSize()
+        img = wx.ImageFromBitmap(bmp)
+        img = img.Rescale(cw, ch)
+        bmp = img.ConvertToBitmap()
 
-        if self.fps_meter:
-            avg_fps = sum(self.fps_meter) / len(self.fps_meter)
-            self.fps_label.SetLabel(f"FPS: {avg_fps:.1f}")
+        dc = wx.ClientDC(self.canvas)
+        dc.Clear()
+        dc.DrawBitmap(bmp, 0, 0)
 
     def _draw_overlays(self, frame, result):
         h, w = frame.shape[:2]
