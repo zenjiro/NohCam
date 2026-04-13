@@ -48,11 +48,14 @@ public sealed partial class MainWindow : Window
     }
 
     [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern bool FaceTracker_Track(
+    private static extern bool FaceTracker_TrackAll(
         [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1)] byte[] pixels,
         uint width,
         uint height,
-        uint stride,
+        uint stride);
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_GetFaceResult(
         out bool detected,
         out float yaw,
         out float pitch,
@@ -64,19 +67,27 @@ public sealed partial class MainWindow : Window
         int blendshapeCapacity);
 
     [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern bool FaceTracker_TrackHands(
-        [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1)] byte[] pixels,
-        uint width,
-        uint height,
-        uint stride,
+    private static extern bool FaceTracker_GetPoseResult(
+        out bool detected,
+        out float score,
+        float[] landmarks33xyz,
+        float[] visibility33,
+        float[] presence33);
+
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_GetHandResult(
         out bool leftDetected,
-        out float leftWristPitch,
-        out float leftWristYaw,
-        out float leftWristRoll,
+        out float leftWristX,
+        out float leftWristY,
+        out float leftWristZ,
         out bool rightDetected,
-        out float rightWristPitch,
-        out float rightWristYaw,
-        out float rightWristRoll);
+        out float rightWristX,
+        out float rightWristY,
+        out float rightWristZ);
+
+    private readonly float[] _poseLandmarks = new float[33 * 3];
+    private readonly float[] _poseVisibility = new float[33];
+    private readonly float[] _posePresence = new float[33];
 
     private readonly float[] _blendshapes = new float[128];
 
@@ -308,51 +319,61 @@ public sealed partial class MainWindow : Window
                 try
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
-                    bool detected = false;
+                    bool faceDetected = false;
                     float yaw = 0, pitch = 0, roll = 0, x = 0, y = 0;
                     int blendshapeCount = 0;
-                    bool leftDetected = false, rightDetected = false;
-                    float leftWristPitch = 0, leftWristYaw = 0, leftWristRoll = 0;
-                    float rightWristPitch = 0, rightWristYaw = 0, rightWristRoll = 0;
 
-                    bool success = FaceTracker_Track(
+                    bool poseDetected = false;
+                    float poseScore = 0;
+
+                    bool leftHandDetected = false, rightHandDetected = false;
+                    float leftWristX = 0, leftWristY = 0, leftWristZ = 0;
+                    float rightWristX = 0, rightWristY = 0, rightWristZ = 0;
+
+                    bool trackAllSuccess = FaceTracker_TrackAll(
                         pixelData,
                         (uint)width,
                         (uint)height,
-                        (uint)(width * 4),
-                        out detected,
-                        out yaw,
-                        out pitch,
-                        out roll,
-                        out x,
-                        out y,
-                        out blendshapeCount,
-                        _blendshapes,
-                        _blendshapes.Length);
+                        (uint)(width * 4));
 
-                    bool handSuccess = FaceTracker_TrackHands(
-                        pixelData,
-                        (uint)width,
-                        (uint)height,
-                        (uint)(width * 4),
-                        out leftDetected,
-                        out leftWristPitch,
-                        out leftWristYaw,
-                        out leftWristRoll,
-                        out rightDetected,
-                        out rightWristPitch,
-                        out rightWristYaw,
-                        out rightWristRoll);
+                    if (trackAllSuccess)
+                    {
+                        FaceTracker_GetFaceResult(
+                            out faceDetected,
+                            out yaw,
+                            out pitch,
+                            out roll,
+                            out x,
+                            out y,
+                            out blendshapeCount,
+                            _blendshapes,
+                            _blendshapes.Length);
+
+                        FaceTracker_GetPoseResult(
+                            out poseDetected,
+                            out poseScore,
+                            _poseLandmarks,
+                            _poseVisibility,
+                            _posePresence);
+
+                        FaceTracker_GetHandResult(
+                            out leftHandDetected,
+                            out leftWristX,
+                            out leftWristY,
+                            out leftWristZ,
+                            out rightHandDetected,
+                            out rightWristX,
+                            out rightWristY,
+                            out rightWristZ);
+                    }
+
                     if (++_handLogCounter % 30 == 0)
                     {
-                        Log($"Hands: success={handSuccess} left={leftDetected} right={rightDetected} lw=({leftWristPitch:F1},{leftWristYaw:F1},{leftWristRoll:F1}) rw=({rightWristPitch:F1},{rightWristYaw:F1},{rightWristRoll:F1})");
+                        Log($"Tracking: success={trackAllSuccess} face={faceDetected} pose={poseDetected} left={leftHandDetected} right={rightHandDetected}");
                     }
                     sw.Stop();
                     Interlocked.Increment(ref _trackCallCount);
-                    if (sw.ElapsedMilliseconds > 300)
-                    {
-                        Log($"FaceTracker_Track took {sw.ElapsedMilliseconds}ms");
-                    }
+
                     if (_trackFpsTimer.ElapsedMilliseconds >= 1000)
                     {
                         var elapsedMs = _trackFpsTimer.ElapsedMilliseconds;
@@ -362,12 +383,12 @@ public sealed partial class MainWindow : Window
                         _trackFpsTimer.Restart();
                     }
 
-                    if (success || handSuccess)
+                    if (trackAllSuccess)
                     {
                         _ = DispatcherQueue.TryEnqueue(() =>
                         {
-                            FaceDetectedTextBlock.Text = $"Detected: {(detected ? "Yes" : "No")}";
-                            if (detected)
+                            FaceDetectedTextBlock.Text = $"Detected: {(faceDetected ? "Yes" : "No")}";
+                            if (faceDetected)
                             {
                                 FaceYawTextBlock.Text = $"Yaw: {yaw:F2}";
                                 FacePitchTextBlock.Text = $"Pitch: {pitch:F2}";
@@ -376,10 +397,22 @@ public sealed partial class MainWindow : Window
                                 BlendshapeCountTextBlock.Text = $"Blendshapes: {blendshapeCount}";
                             }
 
-                            LeftHandDetectedTextBlock.Text = $"Left: {(leftDetected ? "Yes" : "No")}";
-                            LeftWristTextBlock.Text = $"Left Wrist: ({leftWristPitch:F1}, {leftWristYaw:F1}, {leftWristRoll:F1})";
-                            RightHandDetectedTextBlock.Text = $"Right: {(rightDetected ? "Yes" : "No")}";
-                            RightWristTextBlock.Text = $"Right Wrist: ({rightWristPitch:F1}, {rightWristYaw:F1}, {rightWristRoll:F1})";
+                            PoseDetectedTextBlock.Text = $"Detected: {(poseDetected ? "Yes" : "No")}";
+                            PoseScoreTextBlock.Text = $"Score: {poseScore:F2}";
+                            if (poseDetected)
+                            {
+                                // Landmark 15 is Left Wrist, 16 is Right Wrist
+                                float lwX = _poseLandmarks[15 * 3 + 0];
+                                float lwY = _poseLandmarks[15 * 3 + 1];
+                                float rwX = _poseLandmarks[16 * 3 + 0];
+                                float rwY = _poseLandmarks[16 * 3 + 1];
+                                PoseWristsTextBlock.Text = $"Wrists (L/R): ({lwX:F2}, {lwY:F2}) / ({rwX:F2}, {rwY:F2})";
+                            }
+
+                            LeftHandDetectedTextBlock.Text = $"Left: {(leftHandDetected ? "Yes" : "No")}";
+                            LeftWristTextBlock.Text = $"Left Wrist: ({leftWristX:F2}, {leftWristY:F2}, {leftWristZ:F2})";
+                            RightHandDetectedTextBlock.Text = $"Right: {(rightHandDetected ? "Yes" : "No")}";
+                            RightWristTextBlock.Text = $"Right Wrist: ({rightWristX:F2}, {rightWristY:F2}, {rightWristZ:F2})";
                         });
                     }
                 }

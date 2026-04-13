@@ -251,6 +251,12 @@ void OnnxSession::PopulateMetadata() {
         tensor.name = name.get();
         tensor.element_type = ReadElementType(type_info);
         tensor.shape = ReadShape(type_info);
+        
+        std::string shape_str = "[";
+        for (auto s : tensor.shape) shape_str += std::to_string(s) + ",";
+        shape_str += "]";
+        spdlog::info("OnnxSession: Input {} name: '{}', shape: {}", index, tensor.name, shape_str);
+        
         metadata_.inputs.push_back(std::move(tensor));
     }
 
@@ -263,6 +269,12 @@ void OnnxSession::PopulateMetadata() {
         tensor.name = name.get();
         tensor.element_type = ReadElementType(type_info);
         tensor.shape = ReadShape(type_info);
+
+        std::string shape_str = "[";
+        for (auto s : tensor.shape) shape_str += std::to_string(s) + ",";
+        shape_str += "]";
+        spdlog::info("OnnxSession: Output {} name: '{}', shape: {}", index, tensor.name, shape_str);
+
         metadata_.outputs.push_back(std::move(tensor));
     }
 

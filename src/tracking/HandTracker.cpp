@@ -115,14 +115,48 @@ const HandTrackingFrameResult& HandTracker::GetLastResult() const {
     return last_result_;
 }
 
-HandTrackingFrameResult HandTracker::Track(const CameraCapture::CaptureFrame& capture_frame) {
+HandTrackingFrameResult HandTracker::Track(const CameraCapture::CaptureFrame& capture_frame, const PoseResult* pose_hint) {
     last_result_ = HandTrackingFrameResult{};
     if (!initialized_ || !capture_frame.valid || !palm_session_.has_value() || !hand_session_.has_value()) {
         return last_result_;
     }
 
-    auto palms = RunPalmInference(capture_frame);
-    palms = ApplyPalmNms(palms, 2);
+    std::vector<PalmDetection> palms;
+    
+    if (pose_hint && pose_hint->detected) {
+        // Use Pose landmarks to create hand ROIs
+        // Landmark 15: Left Wrist, 16: Right Wrist
+        // We also use elbows (13, 14) to estimate orientation
+        
+        // Left hand (Pose index 15)
+        if (pose_hint->visibility[15] > 0.5f) {
+            PalmDetection d;
+            d.cx = pose_hint->landmarks[15].x;
+            d.cy = pose_hint->landmarks[15].y;
+            // Estimate size from shoulder to elbow distance or similar
+            float dist = glm::distance(pose_hint->landmarks[11], pose_hint->landmarks[13]);
+            d.size = dist * 0.7f; // Rough estimate
+            d.score = pose_hint->visibility[15];
+            palms.push_back(d);
+        }
+        
+        // Right hand (Pose index 16)
+        if (pose_hint->visibility[16] > 0.5f) {
+            PalmDetection d;
+            d.cx = pose_hint->landmarks[16].x;
+            d.cy = pose_hint->landmarks[16].y;
+            float dist = glm::distance(pose_hint->landmarks[12], pose_hint->landmarks[14]);
+            d.size = dist * 0.7f;
+            d.score = pose_hint->visibility[16];
+            palms.push_back(d);
+        }
+    }
+
+    // If pose didn't find hands, fallback to palm detection
+    if (palms.empty()) {
+        palms = RunPalmInference(capture_frame);
+        palms = ApplyPalmNms(palms, 2);
+    }
     if (palms.size() < 2 && !palms.empty()) {
         const auto masked = MaskPalmRegion(capture_frame, palms.front());
         auto extra = RunPalmInference(masked);

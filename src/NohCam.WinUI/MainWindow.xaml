@@ -58,6 +58,13 @@
 
                     <Border Height="1" Background="#374151" Margin="0,2" />
 
+                    <TextBlock Text="Pose Tracking" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="PoseDetectedTextBlock" Text="Detected: No" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="PoseScoreTextBlock" Text="Score: 0.00" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="PoseWristsTextBlock" Text="Wrists (L/R): (0.0, 0.0) / (0.0, 0.0)" Foreground="#9CA3AF" FontSize="14" />
+
+                    <Border Height="1" Background="#374151" Margin="0,2" />
+
                     <TextBlock Text="Hand Tracking" FontSize="18" FontWeight="SemiBold" Foreground="White" />
                     <TextBlock x:Name="LeftHandDetectedTextBlock" Text="Left: No" Foreground="#9CA3AF" FontSize="14" />
                     <TextBlock x:Name="LeftWristTextBlock" Text="Left Wrist: (0.0, 0.0, 0.0)" Foreground="#9CA3AF" FontSize="14" />

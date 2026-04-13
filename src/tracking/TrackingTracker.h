@@ -5,6 +5,7 @@
 #include "capture/CameraCapture.h"
 #include "tracking/FaceTracker.h"
 #include "tracking/HandTracker.h"
+#include "tracking/PoseTracker.h"
 #include "tracking/TrackingResult.h"
 
 namespace nohcam {
@@ -27,6 +28,7 @@ public:
 private:
     FaceTracker face_tracker_;
     HandTracker hand_tracker_;
+    PoseTracker pose_tracker_;
 
     bool initialized_ = false;
     std::string init_error_;

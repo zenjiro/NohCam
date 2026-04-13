@@ -51,13 +51,13 @@ public:
     std::vector<TensorData> Run(const std::vector<TensorData>& inputs);
 
     static const wchar_t* GetDefaultModelDirectory();
+    static std::string Narrow(const std::wstring& value);
 
 private:
     bool TryLoadWithDirectMl(const std::wstring& model_path, std::string* error_message);
     bool LoadWithCpu(const std::wstring& model_path, std::string* error_message);
     void Reset();
     void PopulateMetadata();
-    static std::string Narrow(const std::wstring& value);
     static std::string DescribeException(const Ort::Exception& exception);
 
     Ort::Env env_;

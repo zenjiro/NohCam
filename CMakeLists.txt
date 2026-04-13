@@ -39,6 +39,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(directx-headers CONFIG REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(NOHCAM_ENABLE_ONNXRUNTIME)
     find_path(NOHCAM_ONNXRUNTIME_INCLUDE_DIR
@@ -119,6 +120,7 @@ set(NOHCAM_HEADERS
 set(NOHCAM_TRACKING_SOURCES
     src/tracking/FaceTracker.cpp
     src/tracking/HandTracker.cpp
+    src/tracking/PoseTracker.cpp
     src/tracking/OnnxSession.cpp
     src/tracking/TrackingTracker.cpp
 )
@@ -126,6 +128,7 @@ set(NOHCAM_TRACKING_SOURCES
 set(NOHCAM_TRACKING_HEADERS
     src/tracking/FaceTracker.h
     src/tracking/HandTracker.h
+    src/tracking/PoseTracker.h
     src/tracking/OnnxSession.h
     src/tracking/TrackingTracker.h
     src/tracking/TrackingResult.h
@@ -163,6 +166,9 @@ if(TARGET nohcam_onnxruntime)
             nohcam_onnxruntime
             glm::glm
             spdlog::spdlog
+            opencv_core
+            opencv_videoio
+            opencv_imgproc
     )
 
     if(MSVC)

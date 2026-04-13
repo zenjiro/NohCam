@@ -35,7 +35,7 @@ public:
     const std::string& GetInitializeError() const;
     const HandTrackingFrameResult& GetLastResult() const;
 
-    HandTrackingFrameResult Track(const CameraCapture::CaptureFrame& capture_frame);
+    HandTrackingFrameResult Track(const CameraCapture::CaptureFrame& capture_frame, const PoseResult* pose_hint = nullptr);
 
 private:
     struct PalmDetection {
