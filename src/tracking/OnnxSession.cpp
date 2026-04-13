@@ -166,7 +166,30 @@ std::vector<OnnxSession::TensorData> OnnxSession::Run(const std::vector<TensorDa
 }
 
 const wchar_t* OnnxSession::GetDefaultModelDirectory() {
-    return NOHCAM_ONNX_MODEL_DIR;
+    static std::wstring cached_path;
+    if (!cached_path.empty()) {
+        return cached_path.c_str();
+    }
+
+    HMODULE hModule = nullptr;
+    // Get the handle of the current module (DLL or EXE) where this code resides.
+    ::GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCWSTR>(&OnnxSession::GetDefaultModelDirectory),
+        &hModule);
+
+    wchar_t module_path[MAX_PATH];
+    if (hModule != nullptr && ::GetModuleFileNameW(hModule, module_path, MAX_PATH) > 0) {
+        std::filesystem::path dir = std::filesystem::path(module_path).parent_path() / L"assets" / L"onnx";
+        cached_path = dir.wstring();
+        spdlog::info("OnnxSession: Resolved model directory from module: {}", Narrow(cached_path));
+        return cached_path.c_str();
+    }
+
+    // Fallback to compile-time path if module resolution fails.
+    cached_path = NOHCAM_ONNX_MODEL_DIR;
+    spdlog::warn("OnnxSession: Module resolution failed, using fallback: {}", Narrow(cached_path));
+    return cached_path.c_str();
 }
 
 bool OnnxSession::TryLoadWithDirectMl(const std::wstring& model_path, std::string* error_message) {

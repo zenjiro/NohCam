@@ -186,7 +186,7 @@ if(TARGET nohcam_onnxruntime)
         src/tracking/FaceTrackerBridge.cpp
     )
     target_compile_definitions(nohcam_bridge PRIVATE NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}")
-    target_link_libraries(nohcam_bridge PRIVATE nohcam_tracking)
+    target_link_libraries(nohcam_bridge PRIVATE nohcam_tracking delayimp.lib)
     
     if(MSVC)
         target_link_options(nohcam_bridge PRIVATE /DELAYLOAD:onnxruntime.dll /DELAYLOAD:onnxruntime_providers_shared.dll)
