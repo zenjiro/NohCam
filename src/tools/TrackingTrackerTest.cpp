@@ -7,10 +7,6 @@
 
 int main() {
     nohcam::CameraCapture camera;
-    if (!camera.Initialize()) {
-        std::cerr << "Camera initialization failed." << std::endl;
-        return 1;
-    }
 
     nohcam::TrackingTracker tracker;
     std::string error_message;
@@ -25,13 +21,13 @@ int main() {
     }
 
     for (int attempt = 0; attempt < 120; ++attempt) {
-        const auto frame = camera.GetLatestCaptureFrame();
-        if (!frame.has_value() || !frame->valid) {
+        const auto frame = camera.GetLatestFrame();
+        if (!frame.valid) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             continue;
         }
 
-        const auto result = tracker.Track(*frame);
+        const auto result = tracker.Track(frame);
         std::cout << "Frame " << attempt + 1
                   << " face=" << (result.face.detected ? "Y" : "N")
                   << " pose=" << (result.pose.detected ? "Y" : "N")
@@ -49,7 +45,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    camera.Shutdown();
+    camera.Stop();
     std::cerr << "No hands detected after 120 attempts." << std::endl;
     return 1;
 }

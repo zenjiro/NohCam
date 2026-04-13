@@ -45,9 +45,7 @@ bool Application::Initialize(int show_command) {
 
         main_window_->SetRenderer(renderer_.get());
 
-        if (!camera_capture_->Initialize()) {
-            spdlog::warn("Camera capture initialization failed; the app will continue without live input.");
-        } else if (!camera_capture_->StartDefaultDevice()) {
+        if (!camera_capture_->Start(0)) {
             spdlog::warn("Camera capture did not start; see the UI status panel for details.");
         }
 
@@ -77,8 +75,6 @@ int Application::Run() {
     }
 
     while (main_window_ && main_window_->ProcessMessages()) {
-        const CameraCapture::StateSnapshot camera_state =
-            camera_capture_ ? camera_capture_->GetStateSnapshot() : CameraCapture::StateSnapshot{};
         const bool preview_enabled = true;
 
         if (preview_tap_) {
@@ -86,14 +82,14 @@ int Application::Run() {
         }
 
         if (camera_capture_) {
-            const auto capture_frame = camera_capture_->GetLatestCaptureFrame();
-            if (capture_frame.has_value() && preview_tap_ && capture_frame->frame_count != last_capture_frame_count_) {
-                preview_tap_->SubmitFrame(*capture_frame);
-                last_capture_frame_count_ = capture_frame->frame_count;
+            const auto capture_frame = camera_capture_->GetLatestFrame();
+            if (capture_frame.valid && preview_tap_ && capture_frame.frame_count != last_capture_frame_count_) {
+                preview_tap_->SubmitFrame(capture_frame);
+                last_capture_frame_count_ = capture_frame.frame_count;
             }
 
-            if (capture_frame.has_value() && tracking_tracker_) {
-                last_tracking_result_ = tracking_tracker_->Track(*capture_frame);
+            if (capture_frame.valid && tracking_tracker_) {
+                last_tracking_result_ = tracking_tracker_->Track(capture_frame);
             }
         }
 
@@ -121,7 +117,7 @@ int Application::Run() {
 
 void Application::Shutdown() {
     if (camera_capture_) {
-        camera_capture_->Shutdown();
+        camera_capture_->Stop();
     }
 
     if (renderer_) {

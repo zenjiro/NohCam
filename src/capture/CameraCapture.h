@@ -19,6 +19,8 @@ public:
         uint32_t width = 0;
         uint32_t height = 0;
         uint32_t stride = 0;
+        uint64_t frame_count = 0;
+        uint64_t timestamp_hns = 0;
         std::vector<uint8_t> pixels;
     };
 

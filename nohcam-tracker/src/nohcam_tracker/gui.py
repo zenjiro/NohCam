@@ -4,7 +4,6 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import mediapipe as mp
-from collections import deque
 
 
 CameraWidth = 640
@@ -28,30 +27,26 @@ HAND_CONNECTIONS = [
 ]
 
 POSE_CONNECTIONS = [
-    # Face
+    # Face (nose to eyes)
     (0, 1), (1, 2), (2, 3), (3, 7),
     (0, 4), (4, 5), (5, 6), (6, 8),
     (9, 10),
-    # Shoulders connected
+    # Shoulders
     (11, 12),
     # Left arm: shoulder(11) -> elbow(13) -> wrist(15)
     (11, 13), (13, 15),
     # Right arm: shoulder(12) -> elbow(14) -> wrist(16)
     (12, 14), (14, 16),
-    # Left hand fingers
-    (15, 17), (17, 18), (18, 19), (19, 20),
-    (15, 21),
-    # Right hand fingers
-    (16, 22), (22, 23), (23, 24), (24, 25),
-    (16, 26),
+    # Left hand: wrist(15) -> pinky(17), index(18), thumb(19)
+    (15, 17), (15, 18), (15, 19),
+    # Right hand: wrist(16) -> pinky(20), index(21), thumb(22)
+    (16, 20), (16, 21), (16, 22),
     # Torso: shoulders to hips
     (11, 23), (12, 24), (23, 24),
-    # Left leg: hip(23) -> knee(25) -> ankle(27) -> foot(29,31)
+    # Left leg: hip(23) -> knee(25) -> ankle(27) -> heel(29) -> foot(31)
     (23, 25), (25, 27), (27, 29), (29, 31),
-    (31, 32),
-    # Right leg: hip(24) -> knee(26) -> ankle(28) -> foot(30,32)
+    # Right leg: hip(24) -> knee(26) -> ankle(28) -> heel(30) -> foot(32)
     (24, 26), (26, 28), (28, 30), (30, 32),
-    (32, 33),
 ]
 
 FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 292, 439, 276, 53, 412, 476, 356, 11]
@@ -65,9 +60,6 @@ class MainFrame(wx.Frame):
             size=wx.Size(WindowWidth, WindowHeight),
         )
 
-        self.tracking_enabled = True
-        self.fps_meter = deque(maxlen=30)
-        self.last_frame_time = 0
         self.frame_count = 0
 
         self._setup_ui()
@@ -80,17 +72,6 @@ class MainFrame(wx.Frame):
         self.canvas = wx.Panel(panel, size=wx.Size(WindowWidth, WindowHeight))
         self.canvas.Bind(wx.EVT_PAINT, self._on_paint)
         sizer.Add(self.canvas, proportion=1, flag=wx.EXPAND)
-
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.tracking_btn = wx.Button(panel, label="Tracking: ON")
-        self.tracking_btn.Bind(wx.EVT_BUTTON, self._on_toggle_tracking)
-        btn_sizer.Add(self.tracking_btn)
-
-        self.fps_label = wx.StaticText(panel, label="FPS: --")
-        btn_sizer.Add(self.fps_label, flag=wx.LEFT, border=20)
-
-        sizer.Add(btn_sizer, flag=wx.ALL, border=10)
 
         panel.SetSizer(sizer)
         self.Layout()

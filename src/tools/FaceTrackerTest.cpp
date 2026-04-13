@@ -9,10 +9,6 @@
 
 int main() {
     nohcam::CameraCapture camera;
-    if (!camera.Initialize()) {
-        std::cerr << "Camera initialization failed." << std::endl;
-        return 1;
-    }
 
     nohcam::FaceTracker tracker;
     std::string error_message;
@@ -23,7 +19,7 @@ int main() {
 
     std::cout << "FaceTracker initialized successfully." << std::endl;
 
-    if (!camera.StartDefaultDevice()) {
+    if (!camera.Start(0)) {
         std::cerr << "Failed to start camera capture." << std::endl;
         return 1;
     }
@@ -31,15 +27,15 @@ int main() {
     std::cout << "Camera capture started. Waiting for frame..." << std::endl;
 
     for (int attempt = 0; attempt < 100; ++attempt) {
-        auto frame = camera.GetLatestCaptureFrame();
-        if (!frame.has_value() || !frame->valid) {
+        auto frame = camera.GetLatestFrame();
+        if (!frame.valid) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             continue;
         }
 
-        std::cout << "Got frame: " << frame->width << "x" << frame->height << std::endl;
+        std::cout << "Got frame: " << frame.width << "x" << frame.height << std::endl;
 
-        auto result = tracker.Track(*frame);
+        auto result = tracker.Track(frame);
 
         if (result.detected) {
             std::cout << "Face detected!" << std::endl;
@@ -54,7 +50,7 @@ int main() {
                 std::cerr << "Unexpected blendshape count: " << result.blendshapes.size() << std::endl;
             }
             
-            camera.Shutdown();
+            camera.Stop();
             std::cout << "FaceTracker test passed." << std::endl;
             return 0;
         } else {
@@ -64,7 +60,7 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    camera.Shutdown();
+    camera.Stop();
     std::cerr << "No face detected after 100 attempts." << std::endl;
     return 1;
 }

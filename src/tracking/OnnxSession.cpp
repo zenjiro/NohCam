@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include <spdlog/spdlog.h>
+
 #include <Windows.h>
 
 #include <cpu_provider_factory.h>
