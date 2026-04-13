@@ -1,94 +1,102 @@
-# nohcam-tracker 実装計画
+# NohCam Python 開発計画
 
 ## 概要
 
-MediaPipe を使用してウェブカメラから Face + Hands + Pose 検出し、JSONL 形式で stdout に出力する Python アプリケーション。
-
-- ウェブカメラ入力: 1920x1080 @ 30FPS
-- 検出: MediaPipe Holistic (Hands 21x2 + Pose 33 landmarks + Face 468 landmarks)
-- 処理解像度: 640x480 (パフォーマンス優先)
-- 出力座標: 正規化座標 (0.0-1.0)
-- 出力形式: JSONL (1フレーム=1行)
-
-## 技术スタック
-
-- Python 3.11+
-- uv (パッケージ管理)
-- OpenCV (カメラ入力)
-- MediaPipe Tasks (Holistic Landmarker)
-
-## 依存関係
+Python で MediaPipe を使用してリアルタイム顔・手足・姿勢検出を行い、Live2D モデルを動かして画面上に表示する。
 
 ```
-opencv-python>=4.8.0
-mediapipe>=0.10.0
+Webcam → MediaPipe (顔手足姿勢検出) → Live2D パラメータマッピング → Pygame + live2d-py (描画)
+```
+
+## 技術スタック
+
+| コンポーネント | ライブラリ | 備考 |
+|-----------|-----------|------|
+| 映像入力 | OpenCV (cv2) | Webcam からフレーム取得 |
+| トラッキング | MediaPipe | 顔・手足・姿勢検出 |
+| Live2D 描画 | live2d-py (live2d.v3) | Cubism 3.0+ モデル対応 |
+| ウィンドウ | Pygame + OpenGL | OpenGL コンテキスト必要 |
+| 仮想カメラ | pyvirtualcam | OBS Virtual Camera に出力 |
+
+## 依存ライブラリ
+
+```bash
+pip install opencv-python mediapipe pygame pyopengl pyvirtualcam live2d-py
 ```
 
 ## ディレクトリ構成
 
 ```
-nohcam-tracker/
-├── pyproject.toml
-├── models/
-│   └── holistic_landmarker.task
-├── src/
-│   └── nohcam_tracker/
-│       ├── __init__.py
-│       ├── __main__.py
-│       └── tracker.py
-└── README.md
+nohcam-tracker/src/nohcam_tracker/
+├── __init__.py
+├── __main__.py          # エントリポイント
+├── tracker.py           # MediaPipe トラッキング (既存)
+├── live2d_model.py    # Live2D モデル管理
+├── parameter_mapper.py  # MediaPipe → Live2D パラメータ変換
+└── app.py            # Pygame + メインループ (新規)
 ```
 
-## 実装タスク
+## 実装ステップ
 
-- [x] docs/plan-python.md 作成
-- [x] uv プロジェクト初期化
-- [x] pyproject.toml 設定
-- [x] 依存インストール (opencv-python, mediapipe)
-- [x] tracker.py 実装 (カメラキャプチャ、MediaPipe Holistic)
-- [x] __main__.py 実装 (エントリポイント、JSONL出力)
-- [x] モデルダウンロード (holistic_landmarker.task)
-- [ ] パフォーマンステスト (FPS測定)
-- [ ] Face 検出対応 (HolisticTasks API ではデフォルトで face mesh なし)
+### Step 1: 環境構築
+- 依存ライブラリをインストール (uv sync)
+- pyproject.toml に依存追加
 
-## JSONL 出力フォーマット
+### Step 2: Live2D モデル描画
+- Pygame + OpenGL ウィンドウ作成
+- live2d-py でモデル読み込み・描画
 
-```json
-{"frame":1,"timestamp_ms":504,"face":[],"hands":[{"handedness":"Left","landmarks":[{"x":0.582,"y":0.803,"z":0.0},...]},...],"pose":[{"x":0.489,"y":0.322,"z":-0.333},...]}
+### Step 3: トラッキング統合
+- tracker.py の TrackingResult を live2d_model.py に連携
+
+### Step 4: パラメータマッピング
+- MediaPipe のランドマークを Live2D パラメータに変換
+
+### Step 5: 仮想カメラ出力 (オプション)
+- pyvirtualcam で OBS Virtual Camera に出力
+
+## Live2D パラメータマッピング
+
+### 顔 (Face)
+
+| MediaPipe | Live2D パラメータ | 説明 |
+|----------|------------------|------|
+| 鼻 (landmark 1) | ParamAngleX | 顔 横方向回転 |
+| - | ParamAngleY | 顔 縦方向回転 |
+| - | ParamAngleZ | 顔 傾き |
+
+### 左手 (Left Hand)
+
+| MediaPipe | Live2D パラメータ |
+|----------|------------------|
+| 手首 (landmark 0) | ParamHandL_X, ParamHandL_Y |
+
+### 右手 (Right Hand)
+
+| MediaPipe | Live2D パラメータ |
+|----------|------------------|
+| 手首 (landmark 0) | ParamHandR_X, ParamHandR_Y |
+
+## モデルファイルの場所
+
+Live2D モデルは `assets\live2d-models\` ディレクトリに配置済み。
+
+```
+assets/live2d-models/
+├── hiyori_free_jp/   #  無料版モデル
+├── miku/            #  Hatsune Miku モデル
 ```
 
-フィールド説明:
-- `frame`: フレーム番号
-- `timestamp_ms`: タイムスタンプ (ミリ秒)
-- `face`: Face landmarks (468点, 正規化座標 x,y,z) - *現在空*
-- `hands`: Hand landmarks (21点x2, handedness 含む)
-- `pose`: Pose landmarks (33点, 正規化座標 x,y,z)
+## 注意事項
 
-## パフォーマンス
+1. live2d-py は Windows + Python 3.2+ 要
+2. OpenGL コンテキストが必要
+3. モデルは Cubism 3.0+ (model3.json)
+4. パラメータ ID はモデルごとに異なる
 
-- テスト結果: 数FPS程度 (フレームによる)
-- GPUなしWindowsでは30fps全フレーム処理は困難な場合あり
+## TODO
 
-## C++ 連携
-
-- CreateProcess で子プロセス起動
-- stdout リダイレクトでJSONL読み取り
-- C++側でLive2Dパラメータに変換・補間
-
-## 実行コマンド
-
-```powershell
-uv run nohcam-tracker
-# または
-python -m nohcam_tracker
-```
-
-## 確認項目
-
-- [x] カメラ Captur 動作確認
-- [ ] Face 検出精度 (HolisticTasks API ではデフォルトで face mesh なし - 別途FaceLandmarker追加が必要)
-- [x] Hands 検出精度
-- [x] Pose 検出精度
-- [x] JSONL出力フォーマット確認
-- [ ] FPS 測定 (要テスト)
-- [ ] C++ 子プロセス連携確認
+- [ ] Step 1: 依存ライブラリインストール
+- [ ] Step 2: Live2D 描画確認
+- [ ] Step 3: トラッキング統合
+- [ ] Step 4: パラメータマッピング実装
