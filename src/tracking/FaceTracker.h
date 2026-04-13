@@ -29,9 +29,15 @@ public:
     const std::string& GetInitializeError() const;
     const FaceResult& GetLastResult() const;
 
-    FaceResult Track(const CameraCapture::CaptureFrame& capture_frame);
+    FaceResult Track(const CameraCapture::CaptureFrame& capture_frame, const PoseResult* pose_hint = nullptr);
 
 private:
+
+    struct FaceRoi {
+        float cx = 0.5f;
+        float cy = 0.5f;
+        float size = 1.0f;
+    };
 
     bool LoadFaceModel(std::string* error_message);
     bool LoadBlendshapeModel(std::string* error_message);
@@ -42,6 +48,10 @@ private:
         int target_channels,
         InputLayout layout);
     static FaceResult ParseFaceOutput(const std::vector<float>& output_values);
+
+    FaceRoi BuildRoiFromPose(const PoseResult& pose);
+    CameraCapture::CaptureFrame CropToRoi(const CameraCapture::CaptureFrame& frame, const FaceRoi& roi, int target_size);
+    FaceResult MapLandmarksToFrame(const FaceResult& local_result, const FaceRoi& roi);
 
     std::optional<OnnxSession> face_session_;
     std::optional<OnnxSession> blendshape_session_;

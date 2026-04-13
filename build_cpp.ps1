@@ -12,7 +12,7 @@ if (Test-Path $vswhere) {
             $cmd = "call `"$vcvars`" && " +
                    "if not exist build mkdir build && " +
                    "cd build && " +
-                   "cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release && " +
+                   "cmake .. -DCMAKE_TOOLCHAIN_FILE=D:/git/NohCam/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release && " +
                    "cmake --build . --config Release"
             
             & cmd /c $cmd

@@ -66,10 +66,63 @@ nohcam-tracker/src/nohcam_tracker/
 |----------|------------------|
 | 手首 (landmark 0) | ParamHandR_X, ParamHandR_Y |
 
+## モデル別パラメータ情報
+
+### パラメータ早見表
+
+| モデル | 総数 | Angle パラメータ | Arm パラメータ | 備考 |
+|--------|------|------------------|---------------|------|
+| hiyori_free_jp | 29 | ParamAngleX/Y/Z | ParamArmLA, ParamArmRA | シンプル |
+| miku | 30 | PARAM_ANGLE_X/Y/Z | PARAM_ARM_L/R | 大文字 |
+| mao_pro_jp | 128 | ParamAngleX/Y/Z | ParamArmLA01/RA01, ParamHandLA/RA | **一番细致** |
+| shizuku | 45 | PARAM_ANGLE_X/Y/Z | PARAM_ARM_L/R, PARAM_ARM_L_02/R_02 | 複数腕 |
+| hibiki | 25 | PARAM_ANGLE_X/Y/Z | PARAM_ARM_R | 左腕なし |
+
+### 詳細
+
+**mao_pro_jp** (腕の詳細一段)
+```
+ParamArmLA01  # 左腕01 (肩〜肘)
+ParamArmLA02  # 左腕02 (肘〜手首)
+ParamArmLA03  # 左腕03
+ParamHandLA   # 左手
+ParamArmRA01  # 右腕01
+ParamArmRA02  # 右腕02
+ParamArmRA03  # 右腕03
+ParamHandRA   # 右手
+```
+
+**shizuku** (手の詳細一段)
+```
+PARAM_ARM_L, PARAM_ARM_R                     # 腕
+PARAM_ARM_L_02, PARAM_ARM_R_02              # 腕02
+PARAM_HAND_L, PARAM_HAND_R                  # 左手, 右手
+PARAM_HAND_02_L, PARAM_HAND_02_R            # 左手02, 右手02
+```
+
+**hiyori_free_jp** (シンプル)
+```
+ParamArmLA   # 左腕
+ParamArmRA   # 右腕
+```
+
+### 結論
+
+腕・手の動き**: mao_pro_jp > shizuku > hiyori/miku > hibiki**
+
+mao_pro_jp は128個のパラメータがあり、腕を複数セグメントに分割して制御可能。
+
 ## モデルファイルの場所
 
 Live2D モデルは `assets\live2d-models\` ディレクトリに配置済み。
 
+```
+assets/live2d-models/
+├── hiyori_free_jp/   # 29	params, シンプル
+├── miku/             # 30	params, 大文字
+├── mao_pro_jp/       # 128	params, 一番细致 (推奨)
+├── shizuku/          # 45	params, 二段腕
+└── hibiki/          # 25	params, 左腕なし
 ```
 assets/live2d-models/
 ├── hiyori_free_jp/   #  無料版モデル

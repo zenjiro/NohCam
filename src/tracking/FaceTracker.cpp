@@ -95,11 +95,17 @@ const FaceResult& FaceTracker::GetLastResult() const {
     return last_result_;
 }
 
-FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) {
+FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame, const PoseResult* pose_hint) {
     last_result_ = FaceResult{};
     if (!initialized_ || !capture_frame.valid) {
         return last_result_;
     }
+
+    if (!pose_hint || !pose_hint->detected) {
+        return last_result_;
+    }
+
+    FaceRoi roi = BuildRoiFromPose(*pose_hint);
 
     const auto& face_metadata = face_session_->GetMetadata();
     if (face_metadata.inputs.empty()) {
@@ -107,19 +113,21 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
     }
 
     const std::string input_name = face_metadata.inputs.front().name;
-    const int target_width = face_input_width_ > 0 ? face_input_width_ : static_cast<int>(capture_frame.width);
-    const int target_height = face_input_height_ > 0 ? face_input_height_ : static_cast<int>(capture_frame.height);
+    const int target_width = face_input_width_ > 0 ? face_input_width_ : 192;
+    const int target_height = face_input_height_ > 0 ? face_input_height_ : 192;
     const int target_channels = face_input_channels_ > 0 ? face_input_channels_ : 3;
-    
+
+    // Crop to ROI (must exist since pose_hint is detected)
+    CameraCapture::CaptureFrame input_frame = CropToRoi(capture_frame, roi, target_width);
+
     static int track_counter = 0;
     const bool is_debug = (++track_counter % 60 == 0);
     if (is_debug) {
-        spdlog::info("FaceTracker::Track: input={} target={}x{}x{} layout={} frame={}x{}", 
-            input_name, target_width, target_height, target_channels,
-            (int)face_input_layout_, capture_frame.width, capture_frame.height);
+        spdlog::info("FaceTracker::Track: ROI={}x{} s={} target={}x{}", 
+            roi.cx, roi.cy, roi.size, target_width, target_height);
     }
 
-    auto input_values = PreprocessFrame(capture_frame, target_width, target_height, target_channels, face_input_layout_);
+    auto input_values = PreprocessFrame(input_frame, target_width, target_height, target_channels, face_input_layout_);
     if (input_values.empty()) {
         spdlog::warn("FaceTracker::Track: PreprocessFrame returned empty");
         return last_result_;
@@ -171,6 +179,7 @@ FaceResult FaceTracker::Track(const CameraCapture::CaptureFrame& capture_frame) 
     }
 
     last_result_ = ParseFaceOutput(regressors_output.values);
+    last_result_ = MapLandmarksToFrame(last_result_, roi);
 
     if (blendshape_session_.has_value()) {
         const auto& blend_metadata = blendshape_session_->GetMetadata();
@@ -398,6 +407,74 @@ FaceResult FaceTracker::ParseFaceOutput(const std::vector<float>& output_values)
     }
 
     return result;
+}
+
+FaceTracker::FaceRoi FaceTracker::BuildRoiFromPose(const PoseResult& pose) {
+    FaceRoi roi;
+    float min_x = 1.0f, max_x = 0.0f, min_y = 1.0f, max_y = 0.0f;
+    bool found = false;
+    for (int i = 0; i < 11; ++i) {
+        if (pose.visibility[i] > 0.1f) {
+            min_x = std::min(min_x, pose.landmarks[i].x);
+            max_x = std::max(max_x, pose.landmarks[i].x);
+            min_y = std::min(min_y, pose.landmarks[i].y);
+            max_y = std::max(max_y, pose.landmarks[i].y);
+            found = true;
+        }
+    }
+    if (!found) return {0.5f, 0.5f, 1.0f};
+
+    roi.cx = (min_x + max_x) * 0.5f;
+    roi.cy = (min_y + max_y) * 0.5f;
+    float w = max_x - min_x;
+    float h = max_y - min_y;
+    roi.size = std::max(w, h) * 2.0f;
+    roi.size = std::max(0.1f, std::min(1.0f, roi.size));
+    return roi;
+}
+
+CameraCapture::CaptureFrame FaceTracker::CropToRoi(const CameraCapture::CaptureFrame& frame, const FaceRoi& roi, int target_size) {
+    CameraCapture::CaptureFrame cropped;
+    cropped.valid = frame.valid;
+    cropped.width = static_cast<std::uint32_t>(target_size);
+    cropped.height = static_cast<std::uint32_t>(target_size);
+    cropped.stride = static_cast<std::uint32_t>(target_size * 4);
+    cropped.pixels.assign(static_cast<std::size_t>(cropped.stride) * cropped.height, 0);
+
+    for (int y = 0; y < target_size; ++y) {
+        for (int x = 0; x < target_size; ++x) {
+            float src_xf = (x / (float)target_size - 0.5f) * roi.size + roi.cx;
+            float src_yf = (y / (float)target_size - 0.5f) * roi.size + roi.cy;
+            int src_x = std::clamp(static_cast<int>(src_xf * frame.width), 0, (int)frame.width - 1);
+            int src_y = std::clamp(static_cast<int>(src_yf * frame.height), 0, (int)frame.height - 1);
+            
+            const std::size_t src_offset = (std::size_t)src_y * frame.stride + (std::size_t)src_x * 4;
+            const std::size_t dst_offset = (std::size_t)y * cropped.stride + (std::size_t)x * 4;
+            
+            cropped.pixels[dst_offset + 0] = frame.pixels[src_offset + 0];
+            cropped.pixels[dst_offset + 1] = frame.pixels[src_offset + 1];
+            cropped.pixels[dst_offset + 2] = frame.pixels[src_offset + 2];
+            cropped.pixels[dst_offset + 3] = frame.pixels[src_offset + 3];
+        }
+    }
+    return cropped;
+}
+
+FaceResult FaceTracker::MapLandmarksToFrame(const FaceResult& local_result, const FaceRoi& roi) {
+    FaceResult mapped = local_result;
+    for (std::size_t i = 0; i < 478; ++i) {
+        mapped.landmarks[i].x = (local_result.landmarks[i].x - 0.5f) * roi.size + roi.cx;
+        mapped.landmarks[i].y = (local_result.landmarks[i].y - 0.5f) * roi.size + roi.cy;
+        mapped.landmarks[i].z = local_result.landmarks[i].z * roi.size; 
+    }
+    
+    // Recalculate center
+    float sum_x = 0, sum_y = 0;
+    for(int i=0; i<468; ++i) { sum_x += mapped.landmarks[i].x; sum_y += mapped.landmarks[i].y; }
+    mapped.x = sum_x / 468.0f;
+    mapped.y = sum_y / 468.0f;
+    
+    return mapped;
 }
 
 }  // namespace nohcam

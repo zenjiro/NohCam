@@ -95,6 +95,7 @@ PoseTracker::PoseRoi PoseTracker::DetectPose(const CameraCapture::CaptureFrame& 
     auto outputs = detection_session_->Run({input});
     if (outputs.size() < 2) return {};
 
+    const float detection_threshold = 0.25f;
     const float* scores = outputs[0].values.data();
     const float* bboxes = outputs[1].values.data();
     const int num_anchors = static_cast<int>(outputs[0].values.size());
@@ -116,7 +117,7 @@ PoseTracker::PoseRoi PoseTracker::DetectPose(const CameraCapture::CaptureFrame& 
         spdlog::info("Pose Detection: Best logit={:.2f}, Score={:.2f}, Idx={}", best_logit, final_score, best_idx);
     }
 
-    if (final_score < 0.5f) return {};
+    if (final_score < detection_threshold) return {};
 
     float cx = bboxes[best_idx * 12 + 0];
     float cy = bboxes[best_idx * 12 + 1];
@@ -170,8 +171,16 @@ PoseResult PoseTracker::ExtractLandmarks(const CameraCapture::CaptureFrame& fram
     auto outputs = landmark_session_->Run({input});
     if (outputs.size() < 2) return {};
 
+    static int log_cnt = 0;
+
+    const float landmark_threshold = 0.25f;
     const float score = outputs[1].values[0];
-    if (score < 0.5f) return {};
+    
+    if (log_cnt % 60 == 0) {
+        spdlog::info("Pose Landmarks: Score={:.2f}, Threshold={:.2f}", score, landmark_threshold);
+    }
+
+    if (score < landmark_threshold) return {};
 
     PoseResult result;
     result.detected = true;

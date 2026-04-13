@@ -61,7 +61,7 @@ TrackingResult TrackingTracker::Track(const CameraCapture::CaptureFrame& capture
         spdlog::info("TrackingTracker: pose_tracker_.Track() returned");
 
         // 2. Run Face Tracker
-        last_result_.face = face_tracker_.Track(capture_frame);
+        last_result_.face = face_tracker_.Track(capture_frame, &last_result_.pose);
 
         // 3. Run Hand Tracker
         const HandTrackingFrameResult hands = hand_tracker_.Track(capture_frame, &last_result_.pose);

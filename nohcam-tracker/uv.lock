@@ -336,6 +336,28 @@ wheels = [
 ]
 
 [[package]]
+name = "live2d-py"
+version = "0.6.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "pyopengl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/7b/c7e3c8fb085b5ab629789a2ad653b5931c28c8d5f0223e7aa5b2502047f1/live2d_py-0.6.1.1.tar.gz", hash = "sha256:3f1935fbff1c8786cdafaa812b48662cd1edacd50d7ec67c7b7af474863f1e1b", size = 456753, upload-time = "2026-01-16T13:17:54.907Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/b1/5dd4620d0ec1bfc3055f990b481e7475d5d7a896da71a405f048493a641c/live2d_py-0.6.1.1-cp311-cp311-macosx_15_0_universal2.whl", hash = "sha256:1c5a1468a4068f105b160dc2abc00a2eca09dadf3daaeb5bed169ef676386434", size = 352599, upload-time = "2026-01-16T13:18:05.916Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/f4/4cbca20008807e61ed862ef94e7a4bb6220957768c826547c96ca8dfd992/live2d_py-0.6.1.1-cp311-cp311-win32.whl", hash = "sha256:30f23c1ae2f9e3ecfa10c38a663becc11cc5111d39bf1834188672e708bce838", size = 268650, upload-time = "2026-01-16T13:20:42.56Z" },
+    { url = "https://files.pythonhosted.org/packages/91/2d/0de1ff62561b2f858022ca98e74b7c0be804b90ea5a35676cf808093cb10/live2d_py-0.6.1.1-cp311-cp311-win_amd64.whl", hash = "sha256:5855311b6c0ac5a6e49bd2abcc6756ff4b8b6695cd5792e300b47c35c81fd0e2", size = 295802, upload-time = "2026-01-16T13:20:51.226Z" },
+    { url = "https://files.pythonhosted.org/packages/49/ea/2196136b537904e572b1804d3922ff1b168d6e2a853628aca20b73c7e1b7/live2d_py-0.6.1.1-cp312-cp312-macosx_15_0_universal2.whl", hash = "sha256:381b7aecf94a39a171addd9a298e52726900f8e1541b0efa2941f2380bee606f", size = 352427, upload-time = "2026-01-16T13:18:38.705Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/c8/d068f1f6cf5cccc11a0ec6e19bef566843f85ce2c621552390574bc97f86/live2d_py-0.6.1.1-cp312-cp312-win32.whl", hash = "sha256:06a662177b4526d5ecfec93e19d38a678b34fdeb5d31f2d513829ddbcea5617e", size = 268486, upload-time = "2026-01-16T13:20:51.67Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/b4/bd0fc4960f5ecf1766791fc0dc268d3921513283ace00c9c04894165bd5b/live2d_py-0.6.1.1-cp312-cp312-win_amd64.whl", hash = "sha256:3725794c9900a5660d7402366c1674390b872472bb32d58deb0b08d23f2637a4", size = 295838, upload-time = "2026-01-16T13:20:09.605Z" },
+    { url = "https://files.pythonhosted.org/packages/00/ad/fc0d6c6c48485dbef781bed7f686667302812e86c1beb8f2001c1b46ffc1/live2d_py-0.6.1.1-cp313-cp313-macosx_15_0_universal2.whl", hash = "sha256:5ec5d0a21a79da17f04b6800ecf26646d4a32323aaed282260907839c87ee41f", size = 352702, upload-time = "2026-01-16T13:17:52.149Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/7a/8d314aa659a32b12dc475f6f0074139e854ae1a10cefa7f39de2f25c66c1/live2d_py-0.6.1.1-cp313-cp313-win32.whl", hash = "sha256:85c0f9590deb03a7dcdecac531c75ad2209e98ca5a439e86c397f8f704848a09", size = 268732, upload-time = "2026-01-16T13:20:34.678Z" },
+    { url = "https://files.pythonhosted.org/packages/73/61/c37fd6afa2bad68127758f0016746d940dc07a7f82d0b425b559e6982dba/live2d_py-0.6.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:ff56decc63d6075388f4077b4152605689d564fc49ca25c705cf16b29f8f6cad", size = 295951, upload-time = "2026-01-16T13:19:53.276Z" },
+]
+
+[[package]]
 name = "matplotlib"
 version = "3.10.8"
 source = { registry = "https://pypi.org/simple" }
@@ -422,15 +444,23 @@ name = "nohcam-tracker"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "live2d-py" },
     { name = "mediapipe" },
     { name = "opencv-python" },
+    { name = "pygame" },
+    { name = "pyopengl" },
+    { name = "pyvirtualcam" },
     { name = "wxpython" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "live2d-py", specifier = ">=0.5.0" },
     { name = "mediapipe", specifier = ">=0.10.0" },
     { name = "opencv-python", specifier = ">=4.8.0" },
+    { name = "pygame", specifier = ">=2.0" },
+    { name = "pyopengl", specifier = ">=3.0" },
+    { name = "pyvirtualcam", specifier = ">=0.5.0" },
     { name = "wxpython", specifier = ">=4.0" },
 ]
 
@@ -658,6 +688,44 @@ wheels = [
 ]
 
 [[package]]
+name = "pygame"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/cc/08bba60f00541f62aaa252ce0cfbd60aebd04616c0b9574f755b583e45ae/pygame-2.6.1.tar.gz", hash = "sha256:56fb02ead529cee00d415c3e007f75e0780c655909aaa8e8bf616ee09c9feb1f", size = 14808125, upload-time = "2024-09-29T13:41:34.698Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/ca/8f367cb9fe734c4f6f6400e045593beea2635cd736158f9fabf58ee14e3c/pygame-2.6.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:20349195326a5e82a16e351ed93465a7845a7e2a9af55b7bc1b2110ea3e344e1", size = 13113753, upload-time = "2024-09-29T14:26:13.751Z" },
+    { url = "https://files.pythonhosted.org/packages/83/47/6edf2f890139616b3219be9cfcc8f0cb8f42eb15efd59597927e390538cb/pygame-2.6.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f3935459109da4bb0b3901da9904f0a3e52028a3332a355d298b1673a334cf21", size = 12378146, upload-time = "2024-09-29T14:26:22.456Z" },
+    { url = "https://files.pythonhosted.org/packages/00/9e/0d8aa8cf93db2d2ee38ebaf1c7b61d0df36ded27eb726221719c150c673d/pygame-2.6.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c31dbdb5d0217f32764797d21c2752e258e5fb7e895326538d82b5f75a0cd856", size = 13611760, upload-time = "2024-09-29T11:10:47.317Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/9e/d06adaa5cc65876bcd7a24f59f67e07f7e4194e6298130024ed3fb22c456/pygame-2.6.1-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:173badf82fa198e6888017bea40f511cb28e69ecdd5a72b214e81e4dcd66c3b1", size = 14298054, upload-time = "2024-09-29T11:39:53.891Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/a1/9ae2852ebd3a7cc7d9ae7ff7919ab983e4a5c1b7a14e840732f23b2b48f6/pygame-2.6.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ce8cc108b92de9b149b344ad2e25eedbe773af0dc41dfb24d1f07f679b558c60", size = 13977107, upload-time = "2024-09-29T11:39:56.831Z" },
+    { url = "https://files.pythonhosted.org/packages/31/df/6788fd2e9a864d0496a77670e44a7c012184b7a5382866ab0e60c55c0f28/pygame-2.6.1-cp311-cp311-win32.whl", hash = "sha256:811e7b925146d8149d79193652cbb83e0eca0aae66476b1cb310f0f4226b8b5c", size = 10250863, upload-time = "2024-09-29T11:44:48.199Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/55/ca3eb851aeef4f6f2e98a360c201f0d00bd1ba2eb98e2c7850d80aabc526/pygame-2.6.1-cp311-cp311-win_amd64.whl", hash = "sha256:91476902426facd4bb0dad4dc3b2573bc82c95c71b135e0daaea072ed528d299", size = 10622016, upload-time = "2024-09-29T12:17:01.545Z" },
+    { url = "https://files.pythonhosted.org/packages/92/16/2c602c332f45ff9526d61f6bd764db5096ff9035433e2172e2d2cadae8db/pygame-2.6.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:4ee7f2771f588c966fa2fa8b829be26698c9b4836f82ede5e4edc1a68594942e", size = 13118279, upload-time = "2024-09-29T14:26:30.427Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/53/77ccbc384b251c6e34bfd2e734c638233922449a7844e3c7a11ef91cee39/pygame-2.6.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:c8040ea2ab18c6b255af706ec01355c8a6b08dc48d77fd4ee783f8fc46a843bf", size = 12384524, upload-time = "2024-09-29T14:26:49.996Z" },
+    { url = "https://files.pythonhosted.org/packages/06/be/3ed337583f010696c3b3435e89a74fb29d0c74d0931e8f33c0a4246307a9/pygame-2.6.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c47a6938de93fa610accd4969e638c2aebcb29b2fca518a84c3a39d91ab47116", size = 13587123, upload-time = "2024-09-29T11:10:50.072Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/ca/b015586a450db59313535662991b34d24c1f0c0dc149cc5f496573900f4e/pygame-2.6.1-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:33006f784e1c7d7e466fcb61d5489da59cc5f7eb098712f792a225df1d4e229d", size = 14275532, upload-time = "2024-09-29T11:39:59.356Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/f2/d31e6ad42d657af07be2ffd779190353f759a07b51232b9e1d724f2cda46/pygame-2.6.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1206125f14cae22c44565c9d333607f1d9f59487b1f1432945dfc809aeaa3e88", size = 13952653, upload-time = "2024-09-29T11:40:01.781Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/42/8ea2a6979e6fa971702fece1747e862e2256d4a8558fe0da6364dd946c53/pygame-2.6.1-cp312-cp312-win32.whl", hash = "sha256:84fc4054e25262140d09d39e094f6880d730199710829902f0d8ceae0213379e", size = 10252421, upload-time = "2024-09-29T11:14:26.877Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/90/7d766d54bb95939725e9a9361f9c06b0cfbe3fe100aa35400f0a461a278a/pygame-2.6.1-cp312-cp312-win_amd64.whl", hash = "sha256:3a9e7396be0d9633831c3f8d5d82dd63ba373ad65599628294b7a4f8a5a01a65", size = 10624591, upload-time = "2024-09-29T11:52:54.489Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/91/718acf3e2a9d08a6ddcc96bd02a6f63c99ee7ba14afeaff2a51c987df0b9/pygame-2.6.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:ae6039f3a55d800db80e8010f387557b528d34d534435e0871326804df2a62f2", size = 13090765, upload-time = "2024-09-29T14:27:02.377Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/c6/9cb315de851a7682d9c7568a41ea042ee98d668cb8deadc1dafcab6116f0/pygame-2.6.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:2a3a1288e2e9b1e5834e425bedd5ba01a3cd4902b5c2bff8ed4a740ccfe98171", size = 12381704, upload-time = "2024-09-29T14:27:10.228Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/8f/617a1196e31ae3b46be6949fbaa95b8c93ce15e0544266198c2266cc1b4d/pygame-2.6.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:27eb17e3dc9640e4b4683074f1890e2e879827447770470c2aba9f125f74510b", size = 13581091, upload-time = "2024-09-29T11:30:27.653Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/87/2851a564e40a2dad353f1c6e143465d445dab18a95281f9ea458b94f3608/pygame-2.6.1-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4c1623180e70a03c4a734deb9bac50fc9c82942ae84a3a220779062128e75f3b", size = 14273844, upload-time = "2024-09-29T11:40:04.138Z" },
+    { url = "https://files.pythonhosted.org/packages/85/b5/aa23aa2e70bcba42c989c02e7228273c30f3b44b9b264abb93eaeff43ad7/pygame-2.6.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ef07c0103d79492c21fced9ad68c11c32efa6801ca1920ebfd0f15fb46c78b1c", size = 13951197, upload-time = "2024-09-29T11:40:06.785Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/06/29e939b34d3f1354738c7d201c51c250ad7abefefaf6f8332d962ff67c4b/pygame-2.6.1-cp313-cp313-win32.whl", hash = "sha256:3acd8c009317190c2bfd81db681ecef47d5eb108c2151d09596d9c7ea9df5c0e", size = 10249309, upload-time = "2024-09-29T11:10:23.329Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/11/17f7f319ca91824b86557e9303e3b7a71991ef17fd45286bf47d7f0a38e6/pygame-2.6.1-cp313-cp313-win_amd64.whl", hash = "sha256:813af4fba5d0b2cb8e58f5d95f7910295c34067dcc290d34f1be59c48bd1ea6a", size = 10620084, upload-time = "2024-09-29T11:48:51.587Z" },
+]
+
+[[package]]
+name = "pyopengl"
+version = "3.1.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/16/912b7225d56284859cd9a672827f18be43f8012f8b7b932bc4bd959a298e/pyopengl-3.1.10.tar.gz", hash = "sha256:c4a02d6866b54eb119c8e9b3fb04fa835a95ab802dd96607ab4cdb0012df8335", size = 1915580, upload-time = "2025-08-18T02:33:01.76Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/e4/1ba6f44e491c4eece978685230dde56b14d51a0365bc1b774ddaa94d14cd/pyopengl-3.1.10-py3-none-any.whl", hash = "sha256:794a943daced39300879e4e47bd94525280685f42dbb5a998d336cfff151d74f", size = 3194996, upload-time = "2025-08-18T02:32:59.902Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -676,6 +744,36 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
+]
+
+[[package]]
+name = "pyvirtualcam"
+version = "0.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/91/b9b48c08953d6f910efcd2beac76218aa037c95a849b8826171224bcd235/pyvirtualcam-0.15.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:15398592c2cd1fd5907580b97e4c9784f21d5d0eae294513b7ac6adb50809b4b", size = 622552, upload-time = "2026-01-24T18:27:15.112Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/b9/4857bf44246428490a2322bee2529e2ae954190b9975bfd03d366419a4ae/pyvirtualcam-0.15.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:034518d0e2936ff03cca36c36725a7c0d824a41f802f39bade1378b6d8c0cf3e", size = 629443, upload-time = "2026-01-24T18:27:17.047Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/87/219da377f1b5e9484ce14b288241dea7f88a4ef94f756dc0193b4aade7ce/pyvirtualcam-0.15.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:932bef986d494b6904ea841c71db18822670bd2953657daf0be9af60b8662cd4", size = 160333, upload-time = "2026-01-24T18:27:18.596Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/8f/f1af4f19cce9b646bc2463e88c94b62a6cbc66450e5afadd996f7cca2710/pyvirtualcam-0.15.0-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e63fc508083aae45ed02a565b3ab4f4131f9f8c3652af79c174d541eafd71675", size = 115203, upload-time = "2026-01-24T18:27:20.621Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/31/2358488ebc4b75ae3e72d9e545808d18eb072a1afd3d439912f3cfe9f9a3/pyvirtualcam-0.15.0-cp311-cp311-win_amd64.whl", hash = "sha256:e79c51d59e76ec568320a98b776501ebf4cab482cd2cde6286889e173c23c265", size = 187936, upload-time = "2026-01-24T18:27:23.417Z" },
+    { url = "https://files.pythonhosted.org/packages/62/54/0be9d0387b1365e42af2d7bb7d24f269a4cda1e1821525ef47509077493a/pyvirtualcam-0.15.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:249f65b70092a6966c1af36b1d5d5489bfb5728e47d88f353408946d0d0462fd", size = 626067, upload-time = "2026-01-24T18:27:24.764Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/e4/eb4df4918db020f6716d33d6795b783d902faec94e456cf12f87ab805a34/pyvirtualcam-0.15.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ca94ee514dbe9014766cc7bb442bc2c0521770cb1cb3220300f5cc017e4f14e2", size = 633151, upload-time = "2026-01-24T18:27:26.157Z" },
+    { url = "https://files.pythonhosted.org/packages/35/51/a9aaa25662e8210fe98f62e4997a9460aea3ce969647b1695d80fd785f62/pyvirtualcam-0.15.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:181857762fcefe30de9315fefba213e23b0d87a3e5c9662fa9a9cc2539c80432", size = 160506, upload-time = "2026-01-24T18:27:28.736Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/68/11e6fac14130c6e1ce4f35ebaf9e16eaca1dcfbb9ecca434f71954ca0ff3/pyvirtualcam-0.15.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:eba1cb4ac8b4be0f7831e8c8f0cf720ab3ed3926d2a8ba211bcd0fd76b217921", size = 115884, upload-time = "2026-01-24T18:27:30.162Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/7b/62f987f4c204d23e9e71b90997f9d9dca83dd05a7997001b11af9721d1a6/pyvirtualcam-0.15.0-cp312-cp312-win_amd64.whl", hash = "sha256:761f8d25e96d7987e0c383ac144bd5d314b9d4edee07e844f057dfb6c8ddb6da", size = 189615, upload-time = "2026-01-24T18:27:31.324Z" },
+    { url = "https://files.pythonhosted.org/packages/13/32/44820c74d22f9d31aa580ebe9e61c805ad67edd3c2a4c234b15bb5f815f8/pyvirtualcam-0.15.0-cp313-cp313-macosx_10_9_x86_64.whl", hash = "sha256:7c57eb80422a0aaec6c22653ac56326890b7ee448993f9181ff4d4dbb53a4e8c", size = 626493, upload-time = "2026-01-24T18:27:32.469Z" },
+    { url = "https://files.pythonhosted.org/packages/af/d4/a6f225fbe5ba5c39284eedd8d049c194ce2f20dac6d431a68b47004dc316/pyvirtualcam-0.15.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:131bb12dfddc6d3def85d3b82e6c3e0060069de4164fb413b756641c6cd3aa9b", size = 633281, upload-time = "2026-01-24T18:27:34.654Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/75/a45bdf3124569e643335bb9cc66f13c69ee88657f19a6c73b9b3062164db/pyvirtualcam-0.15.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2b51fb6735224cf7861da8afa69bf52746157aba7831a049561d7b9fae77bf83", size = 160562, upload-time = "2026-01-24T18:27:35.95Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/7a/8fd27ec2b6b35e3b1a7f1cd7edeaa5fe7e989f6a81008a1b23b97db38358/pyvirtualcam-0.15.0-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fde3987c2cbb8e1bb7f51ec8e97462321e342f908c12e77538e94a568517afc2", size = 115909, upload-time = "2026-01-24T18:27:37.336Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/be/654a79e8a98b1a32fbc58744d1a97b1efa66b0d91e81cb571d5a92dad741/pyvirtualcam-0.15.0-cp313-cp313-win_amd64.whl", hash = "sha256:5deb5a68a95a9b3a67bac3b0c614ed084421ec22726a811fc6c575864f912be2", size = 189594, upload-time = "2026-01-24T18:27:38.451Z" },
+    { url = "https://files.pythonhosted.org/packages/db/1c/be6d4ea576030a4f11cfa1c2a2fbd0ce18ec78c17ec33ef97d1c110193bb/pyvirtualcam-0.15.0-cp314-cp314-macosx_10_9_x86_64.whl", hash = "sha256:2b54ac35ce67886184030196ccf372b0ebcacf68abe56f595fadbf162ebc088a", size = 626734, upload-time = "2026-01-24T18:27:39.972Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/43/0bcab7188d05c2149fe123b361bd001bde03e03537e0114646f2ab1da50b/pyvirtualcam-0.15.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b2247e7e5d126ddaa3c514d76ab57dd8a4b3d8e02dcd5a57bfb93537627b745a", size = 633338, upload-time = "2026-01-24T18:27:41.598Z" },
+    { url = "https://files.pythonhosted.org/packages/71/08/da942f9125d00007c9ea009a7bebd97cd69d53e81af487447e357251f2c5/pyvirtualcam-0.15.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:dcea85ca4b948851fc23620be089cd1360b457b2daa68f1ac65614e17d437db2", size = 160544, upload-time = "2026-01-24T18:27:44.33Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/ec/b3047c709aa659b171a9f82e3200c4198ef807a5e6e1bd78575e6929b8aa/pyvirtualcam-0.15.0-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:304c0ffbebd9adb99260b18b91312d7ac05135efc3edf931fbafc691f06feaff", size = 116228, upload-time = "2026-01-24T18:27:45.519Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/51/16226ecbbddf5c5813908a15287002dbb9c209793c2140780c505380b748/pyvirtualcam-0.15.0-cp314-cp314-win_amd64.whl", hash = "sha256:4fb2728b3109368bc0d189171e4e44f257bb78c33578122134c2eeb9eea089b7", size = 193689, upload-time = "2026-01-24T18:27:46.902Z" },
 ]
 
 [[package]]
