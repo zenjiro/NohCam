@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <filesystem>
 
 namespace nohcam {
 
@@ -26,7 +27,8 @@ bool PoseTracker::Initialize(std::string* error_message) {
 
 bool PoseTracker::LoadDetectionModel(std::string* error) {
     detection_session_ = std::make_unique<OnnxSession>();
-    if (!detection_session_->LoadModel(L"assets/onnx/pose_detection.onnx", error)) {
+    const std::filesystem::path model_path = std::filesystem::path(OnnxSession::GetDefaultModelDirectory()) / L"pose_detection.onnx";
+    if (!detection_session_->LoadModel(model_path, error)) {
         return false;
     }
     return true;
@@ -34,7 +36,8 @@ bool PoseTracker::LoadDetectionModel(std::string* error) {
 
 bool PoseTracker::LoadLandmarkModel(std::string* error) {
     landmark_session_ = std::make_unique<OnnxSession>();
-    if (!landmark_session_->LoadModel(L"assets/onnx/pose_landmark_full.onnx", error)) {
+    const std::filesystem::path model_path = std::filesystem::path(OnnxSession::GetDefaultModelDirectory()) / L"pose_landmark_full.onnx";
+    if (!landmark_session_->LoadModel(model_path, error)) {
         return false;
     }
     return true;
