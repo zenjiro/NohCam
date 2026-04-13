@@ -65,7 +65,7 @@ namespace {
     void EnsureLoggerInitialized() {
         if (!g_logger_initialized) {
             try {
-                auto file_sink = spdlog::basic_logger_mt("nohcam_bridge", "nohcam_bridge.log", false); // append
+                auto file_sink = spdlog::basic_logger_mt("nohcam_bridge", "D:/kumano/github/NohCam/src/NohCam.WinUI/bin/Release/net8.0-windows10.0.19041.0/nohcam_bridge.log", false); // append
                 spdlog::set_default_logger(file_sink);
                 spdlog::flush_on(spdlog::level::info);
                 spdlog::set_level(spdlog::level::info);

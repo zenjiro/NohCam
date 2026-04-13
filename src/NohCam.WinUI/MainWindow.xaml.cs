@@ -1,15 +1,25 @@
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Navigation;
+using WinRT.Interop;
 using Windows.Devices.Enumeration;
+using Windows.Foundation;
+using Windows.Graphics.Imaging;
 using Windows.Media.Capture;
 using Windows.Media.Capture.Frames;
+using Windows.Media.MediaProperties;
 using Windows.Media.Playback;
+using Windows.Storage.Streams;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Graphics.Imaging;
-using System.IO;
-using Windows.Storage.Streams;
 using System.Threading;
-using Windows.Media.MediaProperties;
 
 namespace NohCam.WinUI;
 
@@ -91,14 +101,38 @@ public sealed partial class MainWindow : Window
 
     private readonly float[] _blendshapes = new float[128];
 
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    private const int GWL_STYLE = -16;
+    private const int WS_MAXIMIZE = 0x01000000;
+
     public MainWindow()
     {
         InitializeComponent();
-        InitLogger();
-        Activated += OnActivated;
-        Closed += OnClosed;
-    }
 
+        var hWnd = WindowNative.GetWindowHandle(this);
+        var windowId = Win32Interop.GetWindowIdFromWindow(hWnd);
+        var appWindow = AppWindow.GetFromWindowId(windowId);
+
+        if (appWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Maximize();
+        }
+
+        string exeDir = System.AppDomain.CurrentDomain.BaseDirectory;
+    string dllPath = System.IO.Path.Combine(exeDir, "nohcam_bridge.dll");
+    Console.WriteLine($"[DEBUG] App Directory: {exeDir}");
+    Console.WriteLine($"[DEBUG] DLL Path: {dllPath}");
+    Console.WriteLine($"[DEBUG] DLL exists: {System.IO.File.Exists(dllPath)}");
+
+    InitLogger();
+    Activated += OnActivated;
+    Closed += OnClosed;
+}
     private async void OnActivated(object sender, WindowActivatedEventArgs args)
     {
         Activated -= OnActivated;
@@ -262,10 +296,11 @@ public sealed partial class MainWindow : Window
 
     private void Log(string msg)
     {
+        System.Diagnostics.Debug.WriteLine(msg);
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {msg}");
         lock (_logLock) {
             _logWriter?.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
         }
-        System.Diagnostics.Debug.WriteLine(msg);
     }
 
     private void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)

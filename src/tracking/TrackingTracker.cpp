@@ -56,7 +56,9 @@ TrackingResult TrackingTracker::Track(const CameraCapture::CaptureFrame& capture
 
     try {
         // 1. Run Pose Tracker
+        spdlog::info("TrackingTracker: Calling pose_tracker_.Track()");
         last_result_.pose = pose_tracker_.Track(capture_frame);
+        spdlog::info("TrackingTracker: pose_tracker_.Track() returned");
 
         // 2. Run Face Tracker
         last_result_.face = face_tracker_.Track(capture_frame);

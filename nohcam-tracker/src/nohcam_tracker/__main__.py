@@ -1,6 +1,7 @@
 import sys
 import json
 import time
+import argparse
 from collections import deque
 
 from .tracker import create_tracker, TrackingResult
@@ -55,6 +56,15 @@ class FPSMeter:
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gui", action="store_true", help="Launch GUI")
+    args = parser.parse_args()
+
+    if args.gui:
+        from .gui import main as gui_main
+        gui_main()
+        return
+
     tracker = create_tracker()
     tracker.start()
 

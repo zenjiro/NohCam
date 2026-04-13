@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "opencv-python>=4.8.0",
     "mediapipe>=0.10.0",
+    "wxpython>=4.0",
 ]
 
 [project.scripts]

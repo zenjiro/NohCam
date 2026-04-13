@@ -3,7 +3,7 @@
   "version-string": "0.1.0",
   "description": "NohCam Windows desktop application bootstrap.",
   "license": "Apache-2.0",
-  "builtin-baseline": "77df67cfff9c12ccfdb52284e07c87c75092f723",
+  "builtin-baseline": "0b88aacde46a853151730fbe7d0b7ee45f4b6864",
   "dependencies": [
     "nlohmann-json",
     "spdlog",

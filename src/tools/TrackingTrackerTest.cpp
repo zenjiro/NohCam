@@ -19,8 +19,8 @@ int main() {
         return 1;
     }
 
-    if (!camera.StartDefaultDevice()) {
-        std::cerr << "Failed to start camera capture." << std::endl;
+    if (!camera.Start("assets/test_videos/9019476-uhd_2160_3840_24fps.mp4")) {
+        std::cerr << "Failed to open video file." << std::endl;
         return 1;
     }
 
@@ -34,13 +34,15 @@ int main() {
         const auto result = tracker.Track(*frame);
         std::cout << "Frame " << attempt + 1
                   << " face=" << (result.face.detected ? "Y" : "N")
+                  << " pose=" << (result.pose.detected ? "Y" : "N")
+                  << " score=" << result.pose.score
                   << " left=" << (result.left_hand.detected ? "Y" : "N")
                   << " right=" << (result.right_hand.detected ? "Y" : "N")
                   << std::endl;
 
-        if (result.left_hand.detected || result.right_hand.detected) {
-            camera.Shutdown();
-            std::cout << "TrackingTracker test passed." << std::endl;
+        if (result.pose.detected) {
+            camera.Stop();
+            std::cout << "TrackingTracker test passed (Pose detected)." << std::endl;
             return 0;
         }
 

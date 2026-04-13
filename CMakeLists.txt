@@ -11,8 +11,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(NOHCAM_ENABLE_CUBISM_FRAMEWORK "Enable Cubism Framework integration hooks." ON)
-option(NOHCAM_ENABLE_ONNXRUNTIME "Enable ONNX Runtime integration hooks." ON)
 option(NOHCAM_ENABLE_DIRECTML "Enable DirectML linkage for Windows GPU inference." ON)
+
+# ONNX Runtime is always required
+set(NOHCAM_ENABLE_ONNXRUNTIME ON)
 
 set(NOHCAM_CUBISM_SDK_ROOT
     "${CMAKE_SOURCE_DIR}/CubismSdkForNative-5-r.5"
@@ -33,7 +35,7 @@ set(NOHCAM_ONNXRUNTIME_ROOT
 )
 
 # Find vcpkg packages
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/vcpkg/installed/x64-windows")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-windows;C:/vcpkg/installed/x64-windows")
 
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -41,8 +43,8 @@ find_package(glm CONFIG REQUIRED)
 find_package(directx-headers CONFIG REQUIRED)
 find_package(OpenCV REQUIRED)
 
-if(NOHCAM_ENABLE_ONNXRUNTIME)
-    find_path(NOHCAM_ONNXRUNTIME_INCLUDE_DIR
+# ONNX Runtime is always required
+find_path(NOHCAM_ONNXRUNTIME_INCLUDE_DIR
         NAMES onnxruntime_cxx_api.h
         HINTS "${NOHCAM_ONNXRUNTIME_ROOT}"
         PATH_SUFFIXES
@@ -73,7 +75,6 @@ if(NOHCAM_ENABLE_ONNXRUNTIME)
     else()
         message(STATUS "Prebuilt ONNX Runtime not found at ${NOHCAM_ONNXRUNTIME_ROOT}; building without ONNX Runtime linkage.")
     endif()
-endif()
 
 if(NOHCAM_ENABLE_DIRECTML)
     set(NOHCAM_WINDOWS_KITS_ROOT "$ENV{WindowsSdkDir}")
