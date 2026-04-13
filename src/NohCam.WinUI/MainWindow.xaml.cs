@@ -352,56 +352,66 @@ public sealed partial class MainWindow : Window
 
         OverlayCanvas.Children.Clear();
 
+        // Use mirroring for preview by default (selfie style)
+        bool mirror = true;
+
         // 1. Pose
         if (poseOk)
         {
             foreach (var (i, j) in PoseConnections)
             {
                 if (i < 33 && j < 33)
-                    DrawLine(i, j, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+                    DrawLine(i, j, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2, mirror);
             }
             for (int i = 0; i < 33; i++)
-                DrawPoint(i, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+                DrawPoint(i, _poseLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4, mirror);
         }
 
         // 2. Hands
         if (leftOk)
         {
             foreach (var (i, j) in HandConnections)
-                DrawLine(i, j, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+                DrawLine(i, j, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2, mirror);
             for (int i = 0; i < 21; i++)
-                DrawPoint(i, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+                DrawPoint(i, _leftHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4, mirror);
         }
         if (rightOk)
         {
             foreach (var (i, j) in HandConnections)
-                DrawLine(i, j, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2);
+                DrawLine(i, j, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Green, 2, mirror);
             for (int i = 0; i < 21; i++)
-                DrawPoint(i, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4);
+                DrawPoint(i, _rightHandLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 4, mirror);
         }
 
-        // 3. Face
+        // 3. Face (standard MediaPipe mesh is 468 points, irises are 469-478)
         if (faceOk)
         {
-            for (int i = 0; i < 478; i++)
-                DrawPoint(i, _faceLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 2);
+            for (int i = 0; i < 468; i++)
+                DrawPoint(i, _faceLandmarks, offsetX, offsetY, scale, Microsoft.UI.Colors.Red, 2, mirror);
         }
     }
 
-    private void DrawLine(int idx1, int idx2, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double thickness)
+    private void DrawLine(int idx1, int idx2, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double thickness, bool mirror)
     {
-        double x1 = landmarks[idx1 * 3 + 0] * _videoWidth * scale + ox;
+        float x1n = landmarks[idx1 * 3 + 0];
+        float x2n = landmarks[idx2 * 3 + 0];
+        if (mirror) { x1n = 1.0f - x1n; x2n = 1.0f - x2n; }
+
+        double x1 = x1n * _videoWidth * scale + ox;
         double y1 = landmarks[idx1 * 3 + 1] * _videoHeight * scale + oy;
-        double x2 = landmarks[idx2 * 3 + 0] * _videoWidth * scale + ox;
+        double x2 = x2n * _videoWidth * scale + ox;
         double y2 = landmarks[idx2 * 3 + 1] * _videoHeight * scale + oy;
 
         var line = new Microsoft.UI.Xaml.Shapes.Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = new SolidColorBrush(color), StrokeThickness = thickness };
         OverlayCanvas.Children.Add(line);
     }
 
-    private void DrawPoint(int idx, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double size)
+    private void DrawPoint(int idx, float[] landmarks, double ox, double oy, double scale, Windows.UI.Color color, double size, bool mirror)
     {
-        double x = landmarks[idx * 3 + 0] * _videoWidth * scale + ox;
+        float xn = landmarks[idx * 3 + 0];
+        if (mirror) xn = 1.0f - xn;
+
+        double x = xn * _videoWidth * scale + ox;
         double y = landmarks[idx * 3 + 1] * _videoHeight * scale + oy;
         var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = size, Height = size, Fill = new SolidColorBrush(color) };
         Canvas.SetLeft(dot, x - size / 2); Canvas.SetTop(dot, y - size / 2);
@@ -492,7 +502,6 @@ public sealed partial class MainWindow : Window
             });
         }
         catch (Exception ex) { Log($"Frame processing error: {ex.Message}"); Interlocked.Exchange(ref _isTracking, 0); }
-    }
     }
 
     private async void OnClosed(object sender, WindowEventArgs args)
