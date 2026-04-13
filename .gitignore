@@ -19,5 +19,3 @@ imgui.ini
 *.log
 *.tmp
 *.bak
-winui_out.log
-xaml_build.log
