@@ -63,6 +63,21 @@ public sealed partial class MainWindow : Window
         float[] blendshapes,
         int blendshapeCapacity);
 
+    [DllImport("nohcam_bridge.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern bool FaceTracker_TrackHands(
+        [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U1)] byte[] pixels,
+        uint width,
+        uint height,
+        uint stride,
+        out bool leftDetected,
+        out float leftWristPitch,
+        out float leftWristYaw,
+        out float leftWristRoll,
+        out bool rightDetected,
+        out float rightWristPitch,
+        out float rightWristYaw,
+        out float rightWristRoll);
+
     private readonly float[] _blendshapes = new float[128];
 
     public MainWindow()
@@ -103,11 +118,6 @@ public sealed partial class MainWindow : Window
             Log($"OnActivated: Exception: {ex.Message}");
         }
 
-        await StartPreviewAsync();
-    }
-
-    private async void RestartPreview_Click(object sender, RoutedEventArgs e)
-    {
         await StartPreviewAsync();
     }
 
@@ -225,6 +235,7 @@ public sealed partial class MainWindow : Window
     private byte[]? _trackingPixelBuffer;
     private System.Diagnostics.Stopwatch _trackFpsTimer = System.Diagnostics.Stopwatch.StartNew();
     private int _trackCallCount = 0;
+    private int _handLogCounter = 0;
 
     private void InitLogger()
     {
@@ -300,6 +311,9 @@ public sealed partial class MainWindow : Window
                     bool detected = false;
                     float yaw = 0, pitch = 0, roll = 0, x = 0, y = 0;
                     int blendshapeCount = 0;
+                    bool leftDetected = false, rightDetected = false;
+                    float leftWristPitch = 0, leftWristYaw = 0, leftWristRoll = 0;
+                    float rightWristPitch = 0, rightWristYaw = 0, rightWristRoll = 0;
 
                     bool success = FaceTracker_Track(
                         pixelData,
@@ -315,6 +329,24 @@ public sealed partial class MainWindow : Window
                         out blendshapeCount,
                         _blendshapes,
                         _blendshapes.Length);
+
+                    bool handSuccess = FaceTracker_TrackHands(
+                        pixelData,
+                        (uint)width,
+                        (uint)height,
+                        (uint)(width * 4),
+                        out leftDetected,
+                        out leftWristPitch,
+                        out leftWristYaw,
+                        out leftWristRoll,
+                        out rightDetected,
+                        out rightWristPitch,
+                        out rightWristYaw,
+                        out rightWristRoll);
+                    if (++_handLogCounter % 30 == 0)
+                    {
+                        Log($"Hands: success={handSuccess} left={leftDetected} right={rightDetected} lw=({leftWristPitch:F1},{leftWristYaw:F1},{leftWristRoll:F1}) rw=({rightWristPitch:F1},{rightWristYaw:F1},{rightWristRoll:F1})");
+                    }
                     sw.Stop();
                     Interlocked.Increment(ref _trackCallCount);
                     if (sw.ElapsedMilliseconds > 300)
@@ -330,7 +362,7 @@ public sealed partial class MainWindow : Window
                         _trackFpsTimer.Restart();
                     }
 
-                    if (success)
+                    if (success || handSuccess)
                     {
                         _ = DispatcherQueue.TryEnqueue(() =>
                         {
@@ -343,6 +375,11 @@ public sealed partial class MainWindow : Window
                                 FaceCenterTextBlock.Text = $"Center: ({x:F2}, {y:F2})";
                                 BlendshapeCountTextBlock.Text = $"Blendshapes: {blendshapeCount}";
                             }
+
+                            LeftHandDetectedTextBlock.Text = $"Left: {(leftDetected ? "Yes" : "No")}";
+                            LeftWristTextBlock.Text = $"Left Wrist: ({leftWristPitch:F1}, {leftWristYaw:F1}, {leftWristRoll:F1})";
+                            RightHandDetectedTextBlock.Text = $"Right: {(rightDetected ? "Yes" : "No")}";
+                            RightWristTextBlock.Text = $"Right Wrist: ({rightWristPitch:F1}, {rightWristYaw:F1}, {rightWristRoll:F1})";
                         });
                     }
                 }

@@ -118,12 +118,16 @@ set(NOHCAM_HEADERS
 
 set(NOHCAM_TRACKING_SOURCES
     src/tracking/FaceTracker.cpp
+    src/tracking/HandTracker.cpp
     src/tracking/OnnxSession.cpp
+    src/tracking/TrackingTracker.cpp
 )
 
 set(NOHCAM_TRACKING_HEADERS
     src/tracking/FaceTracker.h
+    src/tracking/HandTracker.h
     src/tracking/OnnxSession.h
+    src/tracking/TrackingTracker.h
     src/tracking/TrackingResult.h
 )
 
@@ -324,6 +328,48 @@ if(TARGET nohcam_tracking)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
                 $<TARGET_FILE_DIR:NohCamFaceTrackerTest>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
+
+    add_executable(NohCamTrackingTrackerTest
+        src/tools/TrackingTrackerTest.cpp
+        src/capture/CameraCapture.cpp
+    )
+
+    target_include_directories(NohCamTrackingTrackerTest
+        PRIVATE
+            "${CMAKE_SOURCE_DIR}/src"
+    )
+
+    target_compile_definitions(NohCamTrackingTrackerTest
+        PRIVATE
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            UNICODE
+            _UNICODE
+            NOHCAM_ONNX_MODEL_DIR=L"${NOHCAM_ONNX_MODEL_DIR}"
+    )
+
+    target_compile_options(NohCamTrackingTrackerTest
+        PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
+    )
+
+    target_link_libraries(NohCamTrackingTrackerTest
+        PRIVATE
+            nohcam_tracking
+            mf
+            mfplat
+            mfreadwrite
+            mfuuid
+    )
+
+    if(NOHCAM_ONNXRUNTIME_RUNTIME_DLLS)
+        add_custom_command(TARGET NohCamTrackingTrackerTest POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${NOHCAM_ONNXRUNTIME_RUNTIME_DLLS}
+                $<TARGET_FILE_DIR:NohCamTrackingTrackerTest>
             COMMAND_EXPAND_LISTS
         )
     endif()

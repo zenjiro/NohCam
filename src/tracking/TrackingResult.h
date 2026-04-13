@@ -22,6 +22,12 @@ struct FaceResult {
 struct HandResult {
     bool detected = false;
     std::array<glm::vec3, 21> landmarks{};
+    float wrist_pitch = 0.0f;
+    float wrist_yaw = 0.0f;
+    float wrist_roll = 0.0f;
+    std::array<float, 5> mcp_flexion{};
+    std::array<float, 5> pip_flexion{};
+    std::array<float, 5> dip_flexion{};
 };
 
 struct TrackingResult {

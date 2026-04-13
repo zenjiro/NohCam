@@ -1,4 +1,5 @@
 #include "tracking/FaceTracker.h"
+#include "tracking/HandTracker.h"
 #include <memory>
 #include <mutex>
 #include <cstring>
@@ -57,6 +58,7 @@ extern "C" PfnDliHook __pfnDliNotifyHook2 = MyDelayLoadHook;
 
 namespace {
     std::unique_ptr<nohcam::FaceTracker> g_face_tracker;
+    std::unique_ptr<nohcam::HandTracker> g_hand_tracker;
     std::mutex g_face_tracker_mutex;
     std::string g_init_error;
     bool g_logger_initialized = false;
@@ -82,8 +84,16 @@ EXPORT bool FaceTracker_Initialize() {
     if (!g_face_tracker) {
         g_face_tracker = std::make_unique<nohcam::FaceTracker>();
     }
+    if (!g_hand_tracker) {
+        g_hand_tracker = std::make_unique<nohcam::HandTracker>();
+    }
     g_init_error.clear();
     bool success = g_face_tracker->Initialize(&g_init_error);
+    std::string hand_error;
+    const bool hand_success = g_hand_tracker->Initialize(&hand_error);
+    if (!hand_success && !hand_error.empty()) {
+        spdlog::warn("HandTracker initialization failed (hands will be unavailable): {}", hand_error);
+    }
     spdlog::info("FaceTracker_Initialize result: {}", success);
     return success;
 }
@@ -91,6 +101,7 @@ EXPORT bool FaceTracker_Initialize() {
 EXPORT void FaceTracker_Shutdown() {
     std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
     g_face_tracker.reset();
+    g_hand_tracker.reset();
     g_init_error.clear();
 }
 
@@ -160,4 +171,65 @@ EXPORT bool FaceTracker_Track(
     }
 
     return true;
+}
+
+EXPORT bool FaceTracker_TrackHands(
+    const std::uint8_t* pixels,
+    std::uint32_t width,
+    std::uint32_t height,
+    std::uint32_t stride,
+    bool* left_detected,
+    float* left_wrist_pitch,
+    float* left_wrist_yaw,
+    float* left_wrist_roll,
+    bool* right_detected,
+    float* right_wrist_pitch,
+    float* right_wrist_yaw,
+    float* right_wrist_roll) {
+
+    std::lock_guard<std::mutex> lock(g_face_tracker_mutex);
+    if (!g_hand_tracker || !g_hand_tracker->IsInitialized()) {
+        return false;
+    }
+    if (!pixels || width == 0 || height == 0) {
+        return false;
+    }
+    if (!left_detected || !left_wrist_pitch || !left_wrist_yaw || !left_wrist_roll ||
+        !right_detected || !right_wrist_pitch || !right_wrist_yaw || !right_wrist_roll) {
+        return false;
+    }
+
+    *left_detected = false;
+    *left_wrist_pitch = 0.0f;
+    *left_wrist_yaw = 0.0f;
+    *left_wrist_roll = 0.0f;
+    *right_detected = false;
+    *right_wrist_pitch = 0.0f;
+    *right_wrist_yaw = 0.0f;
+    *right_wrist_roll = 0.0f;
+
+    try {
+        nohcam::CameraCapture::CaptureFrame frame;
+        frame.valid = true;
+        frame.width = width;
+        frame.height = height;
+        frame.stride = stride;
+        frame.pixels.assign(pixels, pixels + (static_cast<std::size_t>(stride) * height));
+
+        const auto result = g_hand_tracker->Track(frame);
+        *left_detected = result.left_hand.detected;
+        *left_wrist_pitch = result.left_hand.wrist_pitch;
+        *left_wrist_yaw = result.left_hand.wrist_yaw;
+        *left_wrist_roll = result.left_hand.wrist_roll;
+        *right_detected = result.right_hand.detected;
+        *right_wrist_pitch = result.right_hand.wrist_pitch;
+        *right_wrist_yaw = result.right_hand.wrist_yaw;
+        *right_wrist_roll = result.right_hand.wrist_roll;
+        return true;
+    } catch (const std::exception& ex) {
+        spdlog::error("FaceTracker_TrackHands exception: {}", ex.what());
+    } catch (...) {
+        spdlog::error("FaceTracker_TrackHands unknown exception");
+    }
+    return false;
 }

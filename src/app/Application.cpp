@@ -6,7 +6,7 @@
 #include "capture/CameraCapture.h"
 #include "pipeline/PreviewTap.h"
 #include "render/D3D11Renderer.h"
-#include "tracking/FaceTracker.h"
+#include "tracking/TrackingTracker.h"
 #include "tracking/TrackingResult.h"
 #include "ui/MainWindow.h"
 
@@ -51,12 +51,14 @@ bool Application::Initialize(int show_command) {
             spdlog::warn("Camera capture did not start; see the UI status panel for details.");
         }
 
-        face_tracker_ = std::make_unique<FaceTracker>();
+        tracking_tracker_ = std::make_unique<TrackingTracker>();
         std::string tracker_error;
-        if (!face_tracker_->Initialize(&tracker_error)) {
-            spdlog::warn("Face tracker initialization failed: {}", tracker_error);
+        if (!tracking_tracker_->Initialize(&tracker_error)) {
+            spdlog::error("Tracking tracker initialization failed: {}", tracker_error);
+            Shutdown();
+            return false;
         } else {
-            spdlog::info("Face tracker initialized successfully.");
+            spdlog::info("Tracking tracker initialized successfully.");
         }
 
         initialized_ = true;
@@ -90,8 +92,8 @@ int Application::Run() {
                 last_capture_frame_count_ = capture_frame->frame_count;
             }
 
-            if (capture_frame.has_value() && face_tracker_) {
-                last_face_result_ = face_tracker_->Track(*capture_frame);
+            if (capture_frame.has_value() && tracking_tracker_) {
+                last_tracking_result_ = tracking_tracker_->Track(*capture_frame);
             }
         }
 
@@ -132,6 +134,7 @@ void Application::Shutdown() {
 
     camera_capture_.reset();
     preview_tap_.reset();
+    tracking_tracker_.reset();
     renderer_.reset();
     main_window_.reset();
     initialized_ = false;

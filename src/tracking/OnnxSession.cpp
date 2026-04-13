@@ -132,18 +132,31 @@ std::vector<OnnxSession::TensorData> OnnxSession::Run(const std::vector<TensorDa
         }
 
         const auto tensor_info = output_value.GetTensorTypeAndShapeInfo();
-        if (tensor_info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
-            throw std::runtime_error("Only float outputs are currently supported by OnnxSession.");
-        }
-
+        const auto element_type = tensor_info.GetElementType();
         const std::vector<int64_t> output_shape = tensor_info.GetShape();
         std::size_t value_count = tensor_info.GetElementCount();
-        const float* output_data = output_value.GetTensorData<float>();
 
         TensorData output;
         output.name = metadata_.outputs[index].name;
         output.shape = output_shape;
-        output.values.assign(output_data, output_data + value_count);
+        output.values.resize(value_count);
+
+        if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+            const float* output_data = output_value.GetTensorData<float>();
+            output.values.assign(output_data, output_data + value_count);
+        } else if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64) {
+            const std::int64_t* output_data = output_value.GetTensorData<std::int64_t>();
+            for (std::size_t i = 0; i < value_count; ++i) {
+                output.values[i] = static_cast<float>(output_data[i]);
+            }
+        } else if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32) {
+            const std::int32_t* output_data = output_value.GetTensorData<std::int32_t>();
+            for (std::size_t i = 0; i < value_count; ++i) {
+                output.values[i] = static_cast<float>(output_data[i]);
+            }
+        } else {
+            throw std::runtime_error("Unsupported output tensor type in OnnxSession.");
+        }
         outputs.push_back(std::move(output));
     }
 

@@ -30,5 +30,9 @@ void PrintMetadata(const std::wstring& model_name) {
 int main() {
     PrintMetadata(L"face_landmarks.onnx");
     PrintMetadata(L"face_blendshapes.onnx");
+    PrintMetadata(L"palm_detection.onnx");
+    PrintMetadata(L"palm_detection_full_Nx3x192x192_post.onnx");
+    PrintMetadata(L"hand_landmarks.onnx");
+    PrintMetadata(L"hand_landmark_sparse_Nx3x224x224.onnx");
     return 0;
 }

@@ -40,22 +40,29 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Background="#111827" CornerRadius="12" Padding="20">
-                <StackPanel Spacing="16">
-                    <TextBlock Text="Camera Status" FontSize="24" FontWeight="SemiBold" Foreground="White" />
-                    <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" Foreground="#9CA3AF" />
-                    <Button x:Name="RestartPreviewButton" Content="Restart Preview" Click="RestartPreview_Click" />
+            <Border Grid.Column="1" Background="#111827" CornerRadius="12" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Camera Status" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="DeviceTextBlock" Text="Device: (none)" TextWrapping="Wrap" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="PreviewStateTextBlock" Text="Preview: not started" TextWrapping="Wrap" Foreground="#9CA3AF" FontSize="14" />
 
-                    <Border Height="1" Background="#374151" Margin="0,8" />
+                    <Border Height="1" Background="#374151" Margin="0,2" />
 
-                    <TextBlock Text="Face Tracking" FontSize="24" FontWeight="SemiBold" Foreground="White" />
-                    <TextBlock x:Name="FaceDetectedTextBlock" Text="Detected: No" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="FaceYawTextBlock" Text="Yaw: 0.00" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="FacePitchTextBlock" Text="Pitch: 0.00" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="FaceRollTextBlock" Text="Roll: 0.00" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="FaceCenterTextBlock" Text="Center: (0.50, 0.50)" Foreground="#9CA3AF" />
-                    <TextBlock x:Name="BlendshapeCountTextBlock" Text="Blendshapes: 0" Foreground="#9CA3AF" />
+                    <TextBlock Text="Face Tracking" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="FaceDetectedTextBlock" Text="Detected: No" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="FaceYawTextBlock" Text="Yaw: 0.00" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="FacePitchTextBlock" Text="Pitch: 0.00" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="FaceRollTextBlock" Text="Roll: 0.00" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="FaceCenterTextBlock" Text="Center: (0.50, 0.50)" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="BlendshapeCountTextBlock" Text="Blendshapes: 0" Foreground="#9CA3AF" FontSize="14" />
+
+                    <Border Height="1" Background="#374151" Margin="0,2" />
+
+                    <TextBlock Text="Hand Tracking" FontSize="18" FontWeight="SemiBold" Foreground="White" />
+                    <TextBlock x:Name="LeftHandDetectedTextBlock" Text="Left: No" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="LeftWristTextBlock" Text="Left Wrist: (0.0, 0.0, 0.0)" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="RightHandDetectedTextBlock" Text="Right: No" Foreground="#9CA3AF" FontSize="14" />
+                    <TextBlock x:Name="RightWristTextBlock" Text="Right Wrist: (0.0, 0.0, 0.0)" Foreground="#9CA3AF" FontSize="14" />
                 </StackPanel>
             </Border>
         </Grid>
