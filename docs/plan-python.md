@@ -38,7 +38,7 @@ nohcam-tracker/src/nohcam_tracker/
 
 ## 実装ステップ
 
-- [ ] Step 1: 環境構築 - 依存ライブラリをインストール (uv sync)
+- [x] Step 1: 環境構築 - 依存ライブラリをインストール (uv sync)
 - [ ] Step 2: Live2D モデル描画 - Pygame + OpenGL ウィンドウ作成、モデル読み込み・描画
 - [ ] Step 3: トラッキング統合 - tracker.py の TrackingResult を live2d_model.py に連携
 - [ ] Step 4: パラメータマッピング - MediaPipe のランドマークを Live2D パラメータに変換
