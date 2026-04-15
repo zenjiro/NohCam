@@ -1,3 +1,4 @@
+import os
 import wx
 import cv2
 import numpy as np
@@ -70,7 +71,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self._on_timer, self.capture_timer)
 
     def _setup_tracker(self):
-        base_options = python.BaseOptions(model_asset_path="models/holistic_landmarker.task")
+        _DIR = os.path.dirname(os.path.abspath(__file__))
+        base_options = python.BaseOptions(
+            model_asset_path=os.path.join(_DIR, "..", "..", "models", "holistic_landmarker.task")
+        )
         options = vision.HolisticLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,

@@ -93,7 +93,7 @@ Dark theme with the following color palette:
 Windows System32 contains `onnxruntime.dll` v1.17.1 which conflicts with our v1.23.4 build.
 
 **Solution:**
-1. Rename our ONNX Runtime DLL: `onnxruntime.dll` → `nohcam_onnxruntime.dll`
+1. Rename our ONNX Runtime DLL: `onnxruntime.dll` ↁE`nohcam_onnxruntime.dll`
 2. Use delay-load with custom hook in `FaceTrackerBridge.cpp` to load from app directory
 
 ### Camera Frame Format

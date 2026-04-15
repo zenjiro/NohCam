@@ -19,3 +19,16 @@ imgui.ini
 *.log
 *.tmp
 *.bak
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+.cache/
+Pipfile.lock
+poetry.lock
