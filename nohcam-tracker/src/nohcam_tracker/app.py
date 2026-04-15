@@ -1,7 +1,8 @@
 import sys
 import os
 import warnings
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
+print("Imports successful", flush=True)
 
 import cv2
 import pygame
@@ -23,24 +24,39 @@ print(f"Loading: {MODEL_PATH}", flush=True)
 
 
 def main():
+    print("Main started", flush=True)
     pygame.init()
+    print("PyGame initialized", flush=True)
     pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
+    print("Display mode set", flush=True)
     pygame.display.set_caption("Live2D Tracking - Arrow keys manual, T auto-track")
 
     live2d.init()
+    print("Live2D initialized", flush=True)
     live2d.glInit()
+    print("Live2D GL initialized", flush=True)
 
     model = live2d.LAppModel()
+    print("Model instance created", flush=True)
     model.LoadModelJson(MODEL_PATH)
+    print("Model JSON loaded", flush=True)
     model.Resize(WIDTH, HEIGHT)
+    print("Model resized", flush=True)
 
     model.StopAllMotions()
     model.SetAutoBlinkEnable(False)
     model.SetAutoBreathEnable(False)
     model.ResetParameters()
+    print("Model parameters reset", flush=True)
 
     param_ids = model.GetParamIds()
     print(f"Params ({len(param_ids)}): {param_ids}", flush=True)
+
+    print("Initializing Tracker...", flush=True)
+    tracker = Tracker(camera_id=0)
+    print("Tracker initialized", flush=True)
+    tracker.start()
+    print("Tracker started", flush=True)
 
     param_angle_x = None
     param_angle_y = None

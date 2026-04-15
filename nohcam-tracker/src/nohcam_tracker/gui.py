@@ -120,7 +120,7 @@ class MainFrame(wx.Frame):
         bmp = wx.Bitmap.FromBufferRGBA(w, h, cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA))
 
         cw, ch = self.canvas.GetSize()
-        img = wx.ImageFromBitmap(bmp)
+        img = bmp.ConvertToImage()
         img = img.Rescale(cw, ch)
         bmp = img.ConvertToBitmap()
 
