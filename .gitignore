@@ -1,11 +1,12 @@
 .python-version
+# Assets
+assets/
+
+# C++ Build outputs
 vcpkg/
 vcpkg_installed/
 CubismSdkForNative*/
 build/
-assets/onnx/*.onnx
-assets/onnx/*.ort
-assets/onnx/*.bin
 third_party/onnxruntime/**
 !third_party/onnxruntime/
 !third_party/onnxruntime/README.md
