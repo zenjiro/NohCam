@@ -10,7 +10,8 @@ from pygame.locals import DOUBLEBUF, OPENGL
 import live2d.v3 as live2d
 from live2d.v3 import StandardParams
 
-MODEL_BASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "live2d-models")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_BASE_PATH = os.path.join(os.path.dirname(SCRIPT_DIR), "assets", "live2d-models")
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
