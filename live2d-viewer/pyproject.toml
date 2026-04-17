@@ -1,0 +1,10 @@
+[project]
+name = "live2d-viewer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "live2d-py>=0.6.1.1",
+    "pygame>=2.6.1",
+]
