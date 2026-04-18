@@ -1,4 +1,11 @@
 .python-version
+
+# Temp files
+err.txt
+out.txt
+run.bat
+nul
+
 # Assets
 assets/
 
