@@ -126,7 +126,7 @@ Most webcams support NV12/MJPG/YUY2, not BGRA8.
 Always use `uv` instead of `pip` for Python packages:
 
 ```powershell
-uv pip install pygame
+uv add pygame
 ```
 
 ## Troubleshooting
