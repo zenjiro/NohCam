@@ -121,6 +121,14 @@ Most webcams support NV12/MJPG/YUY2, not BGRA8.
 - Cubism SDK must be extracted to project root
 - All paths use backslash on Windows (handled by CMake PATH variables)
 
+## Python Dependencies
+
+Always use `uv` instead of `pip` for Python packages:
+
+```powershell
+uv pip install pygame
+```
+
 ## Troubleshooting
 
 ### XamlCompiler Fails with Exit Code 1
