@@ -29,6 +29,16 @@ def main(model_path: str = None):
         model_path = _DEFAULT_MODEL
     model_path = os.path.normpath(model_path)
     print(f"Loading: {model_path}", flush=True)
+    if not os.path.isfile(model_path):
+        raise FileNotFoundError(
+            f"Model file not found: {model_path}\n"
+            "Expected a .model3.json file path."
+        )
+    if not model_path.lower().endswith(".model3.json"):
+        raise ValueError(
+            f"Invalid model path: {model_path}\n"
+            "Expected a .model3.json file."
+        )
 
     print("Main started", flush=True)
     pygame.init()
@@ -44,7 +54,11 @@ def main(model_path: str = None):
 
     model = live2d.LAppModel()
     print("Model instance created", flush=True)
-    model.LoadModelJson(model_path)
+    try:
+        model.LoadModelJson(model_path)
+    except Exception:
+        print("ERROR: LoadModelJson failed.", file=sys.stderr, flush=True)
+        raise
     print("Model JSON loaded", flush=True)
     model.Resize(WIDTH, HEIGHT)
     print("Model resized", flush=True)
@@ -147,15 +161,15 @@ def main(model_path: str = None):
             left_dist  = nose.x - eye_l.x
             right_dist = eye_r.x - nose.x
             denom = max(left_dist + right_dist, 0.001)
-            angle_x = (right_dist - left_dist) / denom * 30
+            angle_x = (right_dist - left_dist) / denom * 120
 
             # 上下回転: 顔の縦幅内での鼻の位置比率（上向き↑正、下向き↓負）
             face_h = chin.y - forehead.y
             nose_ratio = (nose.y - forehead.y) / max(face_h, 0.001)
-            angle_y = (0.45 - nose_ratio) * 60
+            angle_y = (0.45 - nose_ratio) * 300
 
             # ロール: 目の高さ差
-            angle_z = -(eye_r.y - eye_l.y) * 150
+            angle_z = -(eye_r.y - eye_l.y) * 800
 
             if param_angle_x is not None:
                 model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
