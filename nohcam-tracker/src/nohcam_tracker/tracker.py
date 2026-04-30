@@ -37,8 +37,6 @@ class TrackingResult:
     pose: list[PoseLandmarkData]
 
 
-CameraWidth = 1920
-CameraHeight = 1080
 CameraFps = 30
 
 ProcessWidth = 640
@@ -57,6 +55,12 @@ class Tracker:
         options = vision.HolisticLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
+            min_face_detection_confidence=0.3,
+            min_face_suppression_threshold=0.3,
+            min_face_landmarks_confidence=0.3,
+            min_pose_detection_confidence=0.3,
+            min_pose_suppression_threshold=0.3,
+            min_pose_landmarks_confidence=0.3,
         )
         self.detector = vision.HolisticLandmarker.create_from_options(options)
 
@@ -64,9 +68,7 @@ class Tracker:
         self.start_time = 0
 
     def start(self):
-        self.cap = cv2.VideoCapture(self.camera_id)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CameraWidth)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CameraHeight)
+        self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FPS, CameraFps)
         self.start_time = cv2.getTickCount()
 

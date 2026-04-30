@@ -17,13 +17,19 @@ from live2d.v3.params import StandardParams
 
 WIDTH, HEIGHT = 1280, 720
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(SCRIPT_DIR, "..", "..", "..", "assets", "live2d-models", "hiyori_free_jp", "runtime", "hiyori_free_t08.model3.json")
-MODEL_PATH = os.path.normpath(MODEL_PATH)
-print(f"Loading: {MODEL_PATH}", flush=True)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_DEFAULT_MODEL = os.path.normpath(os.path.join(
+    _SCRIPT_DIR, "..", "..", "..", "assets", "live2d-models",
+    "hiyori_free_jp", "runtime", "hiyori_free_t08.model3.json"
+))
 
 
-def main():
+def main(model_path: str = None):
+    if model_path is None:
+        model_path = _DEFAULT_MODEL
+    model_path = os.path.normpath(model_path)
+    print(f"Loading: {model_path}", flush=True)
+
     print("Main started", flush=True)
     pygame.init()
     print("PyGame initialized", flush=True)
@@ -38,7 +44,7 @@ def main():
 
     model = live2d.LAppModel()
     print("Model instance created", flush=True)
-    model.LoadModelJson(MODEL_PATH)
+    model.LoadModelJson(model_path)
     print("Model JSON loaded", flush=True)
     model.Resize(WIDTH, HEIGHT)
     print("Model resized", flush=True)
@@ -52,12 +58,6 @@ def main():
     param_ids = model.GetParamIds()
     print(f"Params ({len(param_ids)}): {param_ids}", flush=True)
 
-    print("Initializing Tracker...", flush=True)
-    tracker = Tracker(camera_id=0)
-    print("Tracker initialized", flush=True)
-    tracker.start()
-    print("Tracker started", flush=True)
-
     param_angle_x = None
     param_angle_y = None
     param_angle_z = None
@@ -65,24 +65,27 @@ def main():
     param_arm_r = None
     
     for i, p in enumerate(param_ids):
-        p_upper = p.upper()
-        if "ANGLEX" in p_upper and param_angle_x is None:
+        p_norm = p.upper().replace("_", "")
+        if "ANGLEX" in p_norm and param_angle_x is None:
             param_angle_x = i
-        elif "ANGLEY" in p_upper and param_angle_y is None:
+        elif "ANGLEY" in p_norm and param_angle_y is None:
             param_angle_y = i
-        elif "ANGLEZ" in p_upper and param_angle_z is None:
+        elif "ANGLEZ" in p_norm and param_angle_z is None:
             param_angle_z = i
-        elif ("ARML" in p_upper or "ARM_L" in p_upper) and param_arm_l is None:
-            if "LB" not in p_upper and "L_B" not in p_upper:
+        elif "ARML" in p_norm and param_arm_l is None:
+            if "LB" not in p_norm:
                 param_arm_l = i
-        elif ("ARMR" in p_upper or "ARM_R" in p_upper) and param_arm_r is None:
-            if "RB" not in p_upper and "R_B" not in p_upper:
+        elif "ARMR" in p_norm and param_arm_r is None:
+            if "RB" not in p_norm:
                 param_arm_r = i
 
     print(f"Found: AngleX={param_angle_x}, AngleY={param_angle_y}, AngleZ={param_angle_z}, ArmL={param_arm_l}, ArmR={param_arm_r}", flush=True)
 
-    tracker = Tracker(camera_id=0)
+    tracker = Tracker(camera_id=1)
+    print("Opening camera...", flush=True)
     tracker.start()
+    if not (tracker.cap and tracker.cap.isOpened()):
+        print("ERROR: Camera failed to open!", flush=True)
 
     auto_track = True
 
@@ -116,48 +119,62 @@ def main():
         keys = pygame.key.get_pressed()
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
+        # カメラから tracking 結果を取得
+        tracking_result = None
         if auto_track:
             try:
-                result = tracker.process_frame()
-                if result and result.face and len(result.face) > 1:
-                    nose = result.face[1]
-                    angle_x = (nose.x - 0.5) * 360
-                    angle_y = (0.5 - nose.y) * 360
-
-                    if param_angle_x is not None:
-                        model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
-                    if param_angle_y is not None:
-                        model.SetIndexParamValue(param_angle_y, angle_y, 1.0)
-                    if param_angle_z is not None:
-                        model.SetIndexParamValue(param_angle_z, -nose.z * 180, 1.0)
-
-                if result and result.hands:
-                    for hand in result.hands:
-                        if hand.landmarks:
-                            wrist = hand.landmarks[0]
-                            if hand.handedness == "Left" and param_arm_l is not None:
-                                model.SetIndexParamValue(param_arm_l, (wrist.x - 0.5) * 10, 1.0)
-                            elif hand.handedness == "Right" and param_arm_r is not None:
-                                model.SetIndexParamValue(param_arm_r, (wrist.x - 0.5) * 10, 1.0)
+                tracking_result = tracker.process_frame()
             except Exception as e:
                 import traceback
                 traceback.print_exc()
                 print(f"Error: {e}", file=sys.stderr)
-        else:
-            if param_angle_x is not None:
-                model.SetIndexParamValue(param_angle_x, manual_angle_x, 1.0)
-            if param_angle_y is not None:
-                model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
-
-            arm_val = (mouse_x / WIDTH - 0.5) * 2
-            if param_arm_r is not None:
-                model.SetIndexParamValue(param_arm_r, arm_val, 1.0)
 
         frame += 1
 
         glClear(GL_COLOR_BUFFER_BIT)
         model.Update()
+
+        # Update() 後にパラメータを設定（LoadParameters() のリセットを回避）
+        if auto_track and tracking_result and len(tracking_result.face) > 263:
+            lm = tracking_result.face
+            nose     = lm[4]    # 鼻先
+            forehead = lm[10]   # 額
+            chin     = lm[152]  # 顎
+            eye_l    = lm[33]   # 右目外端
+            eye_r    = lm[263]  # 左目外端
+
+            # 左右回転: 目に対する鼻の左右非対称
+            left_dist  = nose.x - eye_l.x
+            right_dist = eye_r.x - nose.x
+            denom = max(left_dist + right_dist, 0.001)
+            angle_x = (right_dist - left_dist) / denom * 30
+
+            # 上下回転: 顔の縦幅内での鼻の位置比率（上向き↑正、下向き↓負）
+            face_h = chin.y - forehead.y
+            nose_ratio = (nose.y - forehead.y) / max(face_h, 0.001)
+            angle_y = (0.45 - nose_ratio) * 60
+
+            # ロール: 目の高さ差
+            angle_z = -(eye_r.y - eye_l.y) * 150
+
+            if param_angle_x is not None:
+                model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
+            if param_angle_y is not None:
+                model.SetIndexParamValue(param_angle_y, angle_y, 1.0)
+            if param_angle_z is not None:
+                model.SetIndexParamValue(param_angle_z, angle_z, 1.0)
+
+        elif not auto_track:
+            if param_angle_x is not None:
+                model.SetIndexParamValue(param_angle_x, manual_angle_x, 1.0)
+            if param_angle_y is not None:
+                model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
+
         model.Draw()
+
+        ax = model.GetParameter(0).value if param_angle_x is not None else 0
+        ay = model.GetParameter(1).value if param_angle_y is not None else 0
+        pygame.display.set_caption(f"AngleX={ax:.1f} AngleY={ay:.1f}  (T=toggle auto, ESC=quit)")
 
         pygame.display.flip()
         clock.tick(30)

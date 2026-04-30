@@ -57,12 +57,19 @@ class FPSMeter:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gui", action="store_true", help="Launch GUI")
+    parser.add_argument("--gui", action="store_true", help="Launch tracker GUI")
+    parser.add_argument("--live2d", action="store_true", help="Launch Live2D viewer")
+    parser.add_argument("--model", help="Path to .model3.json (used with --live2d)")
     args = parser.parse_args()
 
     if args.gui:
         from .gui import main as gui_main
         gui_main()
+        return
+
+    if args.live2d:
+        from .app import main as app_main
+        app_main(model_path=args.model)
         return
 
     tracker = create_tracker()
