@@ -16,6 +16,11 @@ from live2d.v3.params import StandardParams
 
 
 WIDTH, HEIGHT = 1280, 720
+ARM_TRACKING_GAIN = 2.2
+
+
+def clamp(v: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, v))
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _DEFAULT_MODEL = os.path.normpath(os.path.join(
@@ -114,6 +119,8 @@ def main(model_path: str = None):
 
     manual_angle_x = 0.0
     manual_angle_y = 0.0
+    arm_l_value = 0.0
+    arm_r_value = 0.0
 
     clock = pygame.time.Clock()
     running = True
@@ -192,6 +199,39 @@ def main(model_path: str = None):
                 model.SetIndexParamValue(param_body_y, angle_y * 0.3, 1.0)
             if param_body_z is not None:
                 model.SetIndexParamValue(param_body_z, angle_z * 0.3, 1.0)
+
+        # MediaPipe Pose から腕パラメータを更新
+        if auto_track and tracking_result and len(tracking_result.pose) > 16:
+            pose = tracking_result.pose
+            ls = pose[11]  # left shoulder
+            rs = pose[12]  # right shoulder
+            le = pose[13]  # left elbow
+            re = pose[14]  # right elbow
+            lw = pose[15]  # left wrist
+            rw = pose[16]  # right wrist
+
+            left_lift = (ls.y - lw.y) * 260.0
+            left_open = (lw.x - ls.x) * 80.0
+            left_elbow_bend = (le.y - lw.y) * 40.0
+            target_arm_l = (left_lift + left_open + left_elbow_bend) * ARM_TRACKING_GAIN
+
+            right_lift = (rs.y - rw.y) * 260.0
+            right_open = (rs.x - rw.x) * 80.0
+            right_elbow_bend = (re.y - rw.y) * 40.0
+            target_arm_r = (right_lift + right_open + right_elbow_bend) * ARM_TRACKING_GAIN
+
+            target_arm_l = clamp(target_arm_l, -60.0, 60.0)
+            target_arm_r = clamp(target_arm_r, -60.0, 60.0)
+
+            # ジッタ低減
+            arm_l_value = arm_l_value + (target_arm_l - arm_l_value) * 0.25
+            arm_r_value = arm_r_value + (target_arm_r - arm_r_value) * 0.25
+
+            # 顔のミラー表示に合わせて腕は左右を反転して適用する
+            if param_arm_l is not None:
+                model.SetIndexParamValue(param_arm_l, arm_r_value, 1.0)
+            if param_arm_r is not None:
+                model.SetIndexParamValue(param_arm_r, arm_l_value, 1.0)
 
         elif not auto_track:
             if param_angle_x is not None:
