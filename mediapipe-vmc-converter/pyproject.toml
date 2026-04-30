@@ -1,0 +1,28 @@
+[project]
+name = "mediapipe-vmc-converter"
+version = "0.1.0"
+description = "MediaPipe to VMC protocol converter"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "mediapipe>=0.10.14",
+  "python-osc>=1.9.3",
+  "numpy>=2.2.0",
+  "scipy>=1.14.0",
+  "opencv-python>=4.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+]
+
+[project.scripts]
+mediapipe-vmc-converter = "mediapipe_vmc_converter.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,15 @@
+{
+  "target": "vseeface",
+  "host": "127.0.0.1",
+  "port": 39539,
+  "mirror": false,
+  "vrm_version": "vrm0",
+  "root_turned_around": false,
+  "camera_index": 0,
+  "model_path": "../assets/mediapipe/pose_landmarker_full.task",
+  "visibility_threshold": 0.5,
+  "fps": 30.0,
+  "send_ok_every_frame": false,
+  "enable_face": false,
+  "enable_hands": false
+}
