@@ -75,12 +75,21 @@ def main(model_path: str = None):
     param_angle_x = None
     param_angle_y = None
     param_angle_z = None
+    param_body_x = None
+    param_body_y = None
+    param_body_z = None
     param_arm_l = None
     param_arm_r = None
-    
+
     for i, p in enumerate(param_ids):
         p_norm = p.upper().replace("_", "")
-        if "ANGLEX" in p_norm and param_angle_x is None:
+        if "BODYANGLEX" in p_norm and param_body_x is None:
+            param_body_x = i
+        elif "BODYANGLEY" in p_norm and param_body_y is None:
+            param_body_y = i
+        elif "BODYANGLEZ" in p_norm and param_body_z is None:
+            param_body_z = i
+        elif "ANGLEX" in p_norm and param_angle_x is None:
             param_angle_x = i
         elif "ANGLEY" in p_norm and param_angle_y is None:
             param_angle_y = i
@@ -93,7 +102,7 @@ def main(model_path: str = None):
             if "RB" not in p_norm:
                 param_arm_r = i
 
-    print(f"Found: AngleX={param_angle_x}, AngleY={param_angle_y}, AngleZ={param_angle_z}, ArmL={param_arm_l}, ArmR={param_arm_r}", flush=True)
+    print(f"Found: AngleX={param_angle_x}, AngleY={param_angle_y}, AngleZ={param_angle_z}, BodyX={param_body_x}, BodyY={param_body_y}, BodyZ={param_body_z}", flush=True)
 
     tracker = Tracker(camera_id=1)
     print("Opening camera...", flush=True)
@@ -177,6 +186,12 @@ def main(model_path: str = None):
                 model.SetIndexParamValue(param_angle_y, angle_y, 1.0)
             if param_angle_z is not None:
                 model.SetIndexParamValue(param_angle_z, angle_z, 1.0)
+            if param_body_x is not None:
+                model.SetIndexParamValue(param_body_x, angle_x * 0.3, 1.0)
+            if param_body_y is not None:
+                model.SetIndexParamValue(param_body_y, angle_y * 0.3, 1.0)
+            if param_body_z is not None:
+                model.SetIndexParamValue(param_body_z, angle_z * 0.3, 1.0)
 
         elif not auto_track:
             if param_angle_x is not None:
