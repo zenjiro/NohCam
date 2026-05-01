@@ -11,7 +11,7 @@ from pygame.locals import *
 from OpenGL.GL import *
 
 import live2d.v3 as live2d
-from nohcam_tracker.tracker import Tracker
+from .tracker import Tracker
 from live2d.v3.params import StandardParams
 
 
@@ -23,15 +23,29 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_DEFAULT_MODEL = os.path.normpath(os.path.join(
-    _SCRIPT_DIR, "..", "..", "..", "assets", "live2d-models",
-    "hiyori_free_jp", "runtime", "hiyori_free_t08.model3.json"
-))
+
+
+def _find_default_model() -> str:
+    # Look for any .model3.json in the assets/live2d-models directory
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    model_dir = os.path.join(base_dir, "assets", "live2d-models")
+    if not os.path.isdir(model_dir):
+        raise FileNotFoundError(
+            "Could not find a default Live2D model. Please check the assets/ directory or specify a model with --model."
+        )
+    for root, dirs, files in os.walk(model_dir):
+        for file in files:
+            if file.endswith(".model3.json"):
+                return os.path.normpath(os.path.join(root, file))
+    # If we get here, no model was found
+    raise FileNotFoundError(
+        "Could not find a default Live2D model. Please check the assets/ directory or specify a model with --model."
+    )
 
 
 def main(model_path: str = None):
     if model_path is None:
-        model_path = _DEFAULT_MODEL
+        model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
     print(f"Loading: {model_path}", flush=True)
     if not os.path.isfile(model_path):
