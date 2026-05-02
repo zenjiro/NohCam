@@ -12,6 +12,7 @@ dependencies = [
     "PyOpenGL>=3.0",
     "live2d-py>=0.5.0",
     "pyvirtualcam>=0.5.0",
+    "questionary>=2.0.0",
 ]
 
 [project.scripts]

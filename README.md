@@ -25,21 +25,29 @@ This will install dependencies and download the model automatically.
 
 ## Usage
 
-```powershell
-uv run nohcam-tracker
-```
-
-Or:
+### 1. Interactive Model Selection (Default)
+Run without options to search for Live2D models (`*.model3.json`) in the current directory and subdirectories. Use arrow keys to select a model.
 
 ```powershell
-python -m nohcam_tracker
+uv run nohcam
 ```
 
-Output JSONL format:
+### 2. Launch with a Specific Model
+Specify the path to a `.model3.json` file.
 
-```json
-{"frame":1,"timestamp_ms":504,"face":[],"hands":[{"handedness":"Left","landmarks":[{"x":0.582,"y":0.803,"z":0.0},...]}],"pose":[{"x":0.489,"y":0.322,"z":-0.333}]}
+```powershell
+uv run nohcam --model path/to/model.model3.json
 ```
+
+### 3. Debug Landmarks
+Launch a GUI to visualize MediaPipe landmarks (Face/Hands/Pose) overlaid on the webcam feed.
+
+```powershell
+uv run nohcam --debug-landmarks
+```
+
+### 4. Output JSONL (Headless)
+If no models are found or if you cancel the interactive selection, the app defaults to printing tracking data as JSONL to stdout.
 
 Fields:
 - `frame`: Frame number

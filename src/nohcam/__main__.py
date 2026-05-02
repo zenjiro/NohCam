@@ -57,20 +57,30 @@ class FPSMeter:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gui", action="store_true", help="Launch tracker GUI")
-    parser.add_argument("--live2d", action="store_true", help="Launch Live2D viewer")
-    parser.add_argument("--model", help="Path to .model3.json (used with --live2d)")
+    parser.add_argument("--debug-landmarks", action="store_true", help="Launch tracker GUI with landmark visualization")
+    parser.add_argument("--model", help="Path to .model3.json to launch Live2D viewer directly")
     args = parser.parse_args()
 
-    if args.gui:
+    # If --debug-landmarks is requested, launch the GUI
+    if args.debug_landmarks:
         from .gui import main as gui_main
         gui_main()
         return
 
-    if args.live2d:
+    # If a specific model is provided, launch Live2D viewer with it
+    if args.model:
         from .app import main as app_main
         app_main(model_path=args.model)
         return
+
+    # If no arguments provided (other than the script name), try interactive selection
+    if len(sys.argv) == 1:
+        from .app import select_model_interactively, main as app_main
+        selected_model = select_model_interactively()
+        if selected_model:
+            app_main(model_path=selected_model)
+            return
+        # If no models found or user canceled, proceed to default tracker output
 
     tracker = create_tracker()
     tracker.start()

@@ -7,6 +7,7 @@ print("Imports successful", flush=True)
 import cv2
 import pygame
 from pygame.locals import *
+import questionary
 
 from OpenGL.GL import *
 
@@ -23,6 +24,52 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def find_all_models(start_dir: str = ".") -> list[str]:
+    """Recursively find all .model3.json files."""
+    models = []
+    for root, _, files in os.walk(start_dir):
+        for file in files:
+            if file.endswith(".model3.json"):
+                models.append(os.path.normpath(os.path.join(root, file)))
+    return models
+
+
+def select_model_interactively() -> str | None:
+    """Find models and let the user select one via a terminal menu."""
+    # Search in assets/live2d-models relative to the script
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    model_dir = os.path.join(base_dir, "assets", "live2d-models")
+    
+    # Search in current directory
+    cwd = os.getcwd()
+    
+    search_dirs = [cwd]
+    if os.path.isdir(model_dir):
+        search_dirs.append(model_dir)
+    
+    models_abs = set()
+    for d in search_dirs:
+        for m in find_all_models(d):
+            models_abs.add(os.path.abspath(m))
+    
+    if not models_abs:
+        return None
+
+    # Sort for consistent display
+    sorted_models = sorted(list(models_abs), key=lambda x: os.path.basename(x).lower())
+
+    # Format choices for questionary
+    choices = [questionary.Choice(title=os.path.basename(m), value=m) for m in sorted_models]
+    choices.append(questionary.Choice(title="[Cancel]", value=None))
+
+    selected = questionary.select(
+        "Select a Live2D model:",
+        choices=choices
+    ).ask()
+
+    return selected
 
 
 def _find_default_model() -> str:
