@@ -91,7 +91,7 @@ def main():
         return
 
     # If no arguments provided (other than the script name), try interactive selection
-    if len(sys.argv) == 1 or (len(sys.argv) == 2 and args.camera is not None):
+    if args.model is None:
         from .app import select_model_interactively, main as app_main
         selected_model = select_model_interactively()
         if selected_model:
