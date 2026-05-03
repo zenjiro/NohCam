@@ -59,30 +59,48 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug-landmarks", action="store_true", help="Launch tracker GUI with landmark visualization")
     parser.add_argument("--model", help="Path to .model3.json to launch Live2D viewer directly")
+    parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
+    parser.add_argument("--camera", type=int, help="Camera index to use")
     args = parser.parse_args()
+
+    from .tracker import get_camera_list, find_default_camera_id
+
+    if args.list_cameras:
+        cameras = get_camera_list()
+        print("Available cameras:")
+        for cam in cameras:
+            print(f"  {cam['id']}: {cam['name']}")
+        return
+
+    # Determine camera ID
+    if args.camera is not None:
+        camera_id = args.camera
+    else:
+        camera_id = find_default_camera_id()
 
     # If --debug-landmarks is requested, launch the GUI
     if args.debug_landmarks:
         from .gui import main as gui_main
-        gui_main()
+        gui_main(camera_id=camera_id)
         return
 
     # If a specific model is provided, launch Live2D viewer with it
     if args.model:
         from .app import main as app_main
-        app_main(model_path=args.model)
+        app_main(model_path=args.model, camera_id=camera_id)
         return
 
     # If no arguments provided (other than the script name), try interactive selection
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and args.camera is not None):
         from .app import select_model_interactively, main as app_main
         selected_model = select_model_interactively()
         if selected_model:
-            app_main(model_path=selected_model)
+            app_main(model_path=selected_model, camera_id=camera_id)
             return
         # If no models found or user canceled, proceed to default tracker output
 
-    tracker = create_tracker()
+    from .tracker import create_tracker
+    tracker = create_tracker(camera_id=camera_id)
     tracker.start()
 
     fps_meter = FPSMeter()

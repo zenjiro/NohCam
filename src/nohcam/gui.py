@@ -45,13 +45,14 @@ FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 
 
 
 class MainFrame(wx.Frame):
-    def __init__(self):
+    def __init__(self, camera_id: int = 0):
         super().__init__(
             None,
             title="nohcam-tracker",
             size=wx.Size(WindowWidth, WindowHeight),
         )
 
+        self.camera_id = camera_id
         self.frame_count = 0
 
         self._setup_ui()
@@ -81,7 +82,7 @@ class MainFrame(wx.Frame):
         )
         self.detector = vision.HolisticLandmarker.create_from_options(options)
 
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, ProcessWidth)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, ProcessHeight)
         self.cap.set(cv2.CAP_PROP_FPS, CameraFps)
@@ -181,9 +182,9 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
 
-def main():
+def main(camera_id: int = 0):
     app = wx.App()
-    frame = MainFrame()
+    frame = MainFrame(camera_id=camera_id)
     frame.Bind(wx.EVT_CLOSE, frame.OnClose)
     frame.Show()
     app.MainLoop()

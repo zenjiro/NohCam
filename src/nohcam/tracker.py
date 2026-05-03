@@ -1,11 +1,68 @@
 import os
+import subprocess
+import platform
 import cv2
 import mediapipe as mp
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict
+
+
+def get_camera_list() -> List[Dict]:
+    """Get a list of available cameras with their IDs and names."""
+    cameras = []
+    
+    if platform.system() == "Windows":
+        try:
+            # Try to get camera names via PowerShell (DirectShow order usually matches)
+            cmd = "Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Image' -or $_.PNPClass -eq 'Camera' } | Select-Object Name"
+            proc = subprocess.run(["powershell", "-NoProfile", "-Command", cmd], capture_output=True, text=True)
+            if proc.returncode == 0:
+                lines = proc.stdout.strip().split("\n")
+                # Skip header lines and empty lines
+                names = [line.strip() for line in lines if line.strip() and "----" not in line and "Name" not in line]
+                
+                # Check which indices actually open in OpenCV
+                for i in range(10):  # Check first 10 indices
+                    cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                    if cap.isOpened():
+                        name = names[i] if i < len(names) else f"Camera {i}"
+                        cameras.append({"id": i, "name": name})
+                        cap.release()
+            else:
+                raise Exception("PowerShell command failed")
+        except Exception:
+            # Fallback to simple index check if PowerShell fails
+            for i in range(5):
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    cameras.append({"id": i, "name": f"Camera {i}"})
+                    cap.release()
+    else:
+        # Fallback for non-Windows (or if DirectShow isn't used)
+        for i in range(5):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                cameras.append({"id": i, "name": f"Camera {i}"})
+                cap.release()
+                
+    return cameras
+
+
+def find_default_camera_id() -> int:
+    """Find the first camera that doesn't look like a virtual camera."""
+    cameras = get_camera_list()
+    if not cameras:
+        return 0
+    
+    for cam in cameras:
+        name = cam["name"].lower()
+        if "virtual" not in name:
+            return cam["id"]
+            
+    return cameras[0]["id"]
 
 
 @dataclass

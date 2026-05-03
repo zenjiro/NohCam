@@ -90,7 +90,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: str = None):
+def main(model_path: str = None, camera_id: int = 0):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -170,8 +170,8 @@ def main(model_path: str = None):
 
     print(f"Found: AngleX={param_angle_x}, AngleY={param_angle_y}, AngleZ={param_angle_z}, BodyX={param_body_x}, BodyY={param_body_y}, BodyZ={param_body_z}", flush=True)
 
-    tracker = Tracker(camera_id=1)
-    print("Opening camera...", flush=True)
+    tracker = Tracker(camera_id=camera_id)
+    print(f"Opening camera {camera_id}...", flush=True)
     tracker.start()
     if not (tracker.cap and tracker.cap.isOpened()):
         print("ERROR: Camera failed to open!", flush=True)

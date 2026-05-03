@@ -46,7 +46,22 @@ Launch a GUI to visualize MediaPipe landmarks (Face/Hands/Pose) overlaid on the 
 uv run nohcam --debug-landmarks
 ```
 
-### 4. Output JSONL (Headless)
+### 4. Camera Selection
+You can list and select specific camera devices.
+
+- **List available cameras:**
+  ```powershell
+  uv run nohcam --list-cameras
+  ```
+- **Select a camera by ID:**
+  ```powershell
+  uv run nohcam --camera 1
+  ```
+
+**Default Behavior:**
+If no camera is specified, the application automatically scans available devices and selects the first one that does not appear to be a "Virtual Camera". This ensures physical webcams are prioritized over virtual ones (like OBS or nizima LIVE).
+
+### 5. Output JSONL (Headless)
 If no models are found or if you cancel the interactive selection, the app defaults to printing tracking data as JSONL to stdout.
 
 Fields:
