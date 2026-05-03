@@ -59,7 +59,7 @@ You can list and select specific camera devices by their index.
   ```
 
 **Default Behavior:**
-If no camera is specified, the application defaults to the first available camera (index 0). If you have multiple cameras (including virtual cameras) and the wrong one is selected, use `--list-cameras` to find the correct index and specify it with `--camera`.
+If no camera is specified, the application attempts to automatically select the first non-virtual camera. If you have multiple cameras and the wrong one is selected, use `--list-cameras` to find the correct index and specify it with `--camera`.
 
 ### 5. Output JSONL (Headless)
 If no models are found or if you cancel the interactive selection, the app defaults to printing tracking data as JSONL to stdout.
