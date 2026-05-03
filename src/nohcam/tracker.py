@@ -11,26 +11,51 @@ from typing import Optional, List, Dict
 
 
 def get_camera_list() -> List[Dict]:
-    """Get a list of available camera indices using OpenCV."""
+    """Get a list of available camera indices and their names."""
     cameras = []
     
-    # Check first 5 indices
-    for i in range(5):
-        # Use DirectShow on Windows for better stability and faster opening
-        backend = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY
-        cap = cv2.VideoCapture(i, backend)
-        if cap.isOpened():
-            cameras.append({"id": i, "name": f"Camera {i}"})
-            cap.release()
+    if platform.system() == "Windows":
+        try:
+            from pygrabber.dshow_graph import FilterGraph
+            graph = FilterGraph()
+            devices = graph.get_input_devices()
+            for i, name in enumerate(devices):
+                # Verify if it can be opened by OpenCV
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    cameras.append({"id": i, "name": name})
+                    cap.release()
+        except ImportError:
+            # Fallback if pygrabber is not available
+            for i in range(5):
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    cameras.append({"id": i, "name": f"Camera {i}"})
+                    cap.release()
+    else:
+        # Non-Windows platforms
+        for i in range(5):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                cameras.append({"id": i, "name": f"Camera {i}"})
+                cap.release()
                 
     return cameras
 
 
 def find_default_camera_id() -> int:
-    """Return the first available camera index, or 0 as default."""
+    """Find the first camera that doesn't look like a virtual camera."""
     cameras = get_camera_list()
     if not cameras:
         return 0
+    
+    # Try to find a non-virtual camera
+    for cam in cameras:
+        name = cam["name"].lower()
+        if "virtual" not in name:
+            return cam["id"]
+            
+    # Fallback to the first available camera
     return cameras[0]["id"]
 
 
