@@ -1,5 +1,4 @@
 import sys
-import json
 import time
 import argparse
 from collections import deque
@@ -97,31 +96,9 @@ def main():
         if selected_model:
             app_main(model_path=selected_model, camera_id=camera_id)
             return
-        # If no models found or user canceled, proceed to default tracker output
-
-    from .tracker import create_tracker
-    tracker = create_tracker(camera_id=camera_id)
-    tracker.start()
-
-    fps_meter = FPSMeter()
-
-    print("nohcam-tracker started", file=sys.stderr)
-    sys.stderr.flush()
-
-    try:
-        while True:
-            result = tracker.process_frame()
-            if result:
-                data = format_result(result)
-                print(json.dumps(data), flush=True)
-
-                fps = fps_meter.update()
-                if result.frame % 30 == 0:
-                    print(f"FPS: {fps:.2f}", file=sys.stderr)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        tracker.stop()
+        # If no models found or user canceled, the application exits.
+    print("No model selected. Exiting.", file=sys.stderr)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
