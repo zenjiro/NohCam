@@ -14,8 +14,16 @@ MediaPipe Face/Hands/Pose tracker with webcam input.
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv)
 
-## Setup
+## Installation
 
+### Method 1: Using `uvx` (Easiest)
+You can run the application directly without cloning the repository using `uvx`:
+
+```powershell
+uvx git+https://github.com/zenjiro/NohCam
+```
+
+### Method 2: Local Development
 ```powershell
 cd nohcam-tracker
 uv sync

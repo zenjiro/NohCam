@@ -98,6 +98,7 @@ class Tracker:
     def __init__(self, camera_id: int = 0):
         self.camera_id = camera_id
         self.cap: Optional[cv2.VideoCapture] = None
+        self.current_frame: Optional[np.ndarray] = None
 
         _DIR = os.path.dirname(os.path.abspath(__file__))
         base_options = python.BaseOptions(
@@ -136,6 +137,7 @@ class Tracker:
         if not ret:
             return None
 
+        self.current_frame = frame.copy()
         self.frame_count += 1
 
         timestamp_ms = int((cv2.getTickCount() - self.start_time) / cv2.getTickFrequency() * 1000)

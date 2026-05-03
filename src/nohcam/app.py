@@ -5,6 +5,7 @@ import warnings
 print("Imports successful", flush=True)
 
 import cv2
+import numpy as np
 import pygame
 from pygame.locals import *
 import questionary
@@ -18,6 +19,84 @@ from live2d.v3.params import StandardParams
 
 WIDTH, HEIGHT = 1280, 720
 ARM_TRACKING_GAIN = 2.2
+
+HAND_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),
+    (0, 5), (5, 6), (6, 7), (7, 8),
+    (5, 9), (9, 10), (10, 11), (11, 12),
+    (9, 13), (13, 14), (14, 15), (15, 16),
+    (13, 17), (17, 18), (18, 19), (19, 20),
+]
+
+POSE_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 7),
+    (0, 4), (4, 5), (5, 6), (6, 8),
+    (9, 10),
+    (11, 12),
+    (11, 13), (13, 15), (15, 17), (15, 19), (15, 21), (17, 19),
+    (12, 14), (14, 16), (16, 18), (16, 20), (16, 22), (18, 20),
+    (11, 23), (12, 24), (23, 24),
+    (23, 25), (24, 26),
+    (25, 27), (26, 28),
+    (27, 29), (28, 30),
+    (29, 31), (30, 32),
+    (27, 31), (28, 32),
+]
+
+FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 292, 439, 276, 53, 412, 476, 356, 11]
+
+
+def draw_landmarks_overlay(frame: np.ndarray, tracking_result) -> np.ndarray:
+    """Draw landmarks on frame from TrackingResult"""
+    h, w = frame.shape[:2]
+
+    if tracking_result.face:
+        face_pts = [(int(lm.x * w), int(lm.y * h)) for lm in tracking_result.face]
+        for i in range(len(face_pts) - 1):
+            cv2.line(frame, face_pts[i], face_pts[i + 1], (0, 255, 0), 1)
+        cv2.polylines(frame, [np.array([face_pts[i] for i in FACE_OUTLINE], np.int32)], True, (0, 255, 0), 2)
+
+    for hand_data in tracking_result.hands:
+        hand_pts = [(int(lm.x * w), int(lm.y * h)) for lm in hand_data.landmarks]
+        for i, j in HAND_CONNECTIONS:
+            if i < len(hand_pts) and j < len(hand_pts):
+                cv2.line(frame, hand_pts[i], hand_pts[j], (0, 255, 0), 2)
+        for pt in hand_pts:
+            cv2.circle(frame, pt, 3, (0, 0, 255), -1)
+
+    if tracking_result.pose:
+        pose_pts = [(int(lm.x * w), int(lm.y * h)) for lm in tracking_result.pose]
+        for i, j in POSE_CONNECTIONS:
+            if i < len(pose_pts) and j < len(pose_pts):
+                cv2.line(frame, pose_pts[i], pose_pts[j], (0, 255, 0), 2)
+        for pt in pose_pts:
+            cv2.circle(frame, pt, 3, (0, 0, 255), -1)
+        nose_idx = [0, 1, 2, 3, 4, 5, 6]
+        for idx in nose_idx:
+            if idx < len(pose_pts):
+                cv2.circle(frame, pose_pts[idx], 5, (255, 0, 0), -1)
+
+    return frame
+
+
+def draw_texture(texture_id, x, y, width, height):
+    """Draw a texture at specified position using OpenGL"""
+    glEnable(GL_TEXTURE_2D)
+    glBindTexture(GL_TEXTURE_2D, texture_id)
+    glColor3f(1.0, 1.0, 1.0)
+
+    glBegin(GL_QUADS)
+    glTexCoord2f(0, 1)
+    glVertex2f(x, y)
+    glTexCoord2f(1, 1)
+    glVertex2f(x + width, y)
+    glTexCoord2f(1, 0)
+    glVertex2f(x + width, y + height)
+    glTexCoord2f(0, 0)
+    glVertex2f(x, y + height)
+    glEnd()
+
+    glDisable(GL_TEXTURE_2D)
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -177,6 +256,9 @@ def main(model_path: str = None, camera_id: int = 0):
         print("ERROR: Camera failed to open!", flush=True)
 
     auto_track = True
+    overlay_texture_id = None
+    overlay_width = WIDTH // 2
+    overlay_height = HEIGHT // 2
 
     manual_angle_x = 0.0
     manual_angle_y = 0.0
@@ -301,6 +383,30 @@ def main(model_path: str = None, camera_id: int = 0):
                 model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
 
         model.Draw()
+
+        # Draw landmark overlay in top-left quarter
+        if auto_track and tracking_result and tracker.current_frame is not None:
+            overlay_frame = tracker.current_frame.copy()
+            overlay_frame = cv2.resize(overlay_frame, (overlay_width, overlay_height))
+            overlay_frame = draw_landmarks_overlay(overlay_frame, tracking_result)
+
+            # Convert to RGB for OpenGL
+            overlay_rgb = cv2.cvtColor(overlay_frame, cv2.COLOR_BGR2RGB)
+            overlay_rgb = cv2.flip(overlay_rgb, 0)
+
+            if overlay_texture_id is None:
+                overlay_texture_id = glGenTextures(1)
+                glBindTexture(GL_TEXTURE_2D, overlay_texture_id)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, overlay_width, overlay_height, 0, GL_RGB, GL_UNSIGNED_BYTE, overlay_rgb)
+            else:
+                glBindTexture(GL_TEXTURE_2D, overlay_texture_id)
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, overlay_width, overlay_height, GL_RGB, GL_UNSIGNED_BYTE, overlay_rgb)
+
+            # Draw overlay in top-left quarter (OpenGL coordinates: -1 to 1)
+            # Top-left quarter: x=-1 to -0.5, y=1 to 0.5
+            draw_texture(overlay_texture_id, -1, 1, 0.5, -0.5)
 
         ax = model.GetParameter(0).value if param_angle_x is not None else 0
         ay = model.GetParameter(1).value if param_angle_y is not None else 0
