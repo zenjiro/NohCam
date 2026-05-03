@@ -71,17 +71,6 @@ Fields:
 - `hands`: Hand landmarks (21 points each, including handedness)
 - `pose`: Pose landmarks (33 points)
 
-## C++ Integration
-
-From C++, spawn as subprocess with stdout redirected:
-
-```cpp
-PROCESS_INFORMATION pi;
-STARTUPINFOA si = {sizeof(si)};
-CreateProcessA("python.exe", "-m nohcam_tracker", ..., &pi, &si);
-// Read JSONL from stdout pipe
-```
-
 ## Notes
 
 - Face mesh is not included by default with HolisticTasks API
