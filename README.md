@@ -61,16 +61,6 @@ You can list and select specific camera devices by their index.
 **Default Behavior:**
 If no camera is specified, the application attempts to automatically select the first non-virtual camera. If you have multiple cameras and the wrong one is selected, use `--list-cameras` to find the correct index and specify it with `--camera`.
 
-### 5. Output JSONL (Headless)
-If no models are found or if you cancel the interactive selection, the app defaults to printing tracking data as JSONL to stdout.
-
-Fields:
-- `frame`: Frame number
-- `timestamp_ms`: Timestamp in milliseconds
-- `face`: Face landmarks (empty by default with HolisticTasks API)
-- `hands`: Hand landmarks (21 points each, including handedness)
-- `pose`: Pose landmarks (33 points)
-
 ## Notes
 
 - Face mesh is not included by default with HolisticTasks API
