@@ -57,6 +57,7 @@ class FPSMeter:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug-landmarks", action="store_true", help="Launch tracker GUI with landmark visualization")
+    parser.add_argument("--debug-overlay", action="store_true", help="Overlay landmark visualization on top-left corner of Live2D viewer")
     parser.add_argument("--model", help="Path to .model3.json to launch Live2D viewer directly")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
     parser.add_argument("--camera", type=int, help="Camera index to use")
@@ -86,7 +87,7 @@ def main():
     # If a specific model is provided, launch Live2D viewer with it
     if args.model:
         from .app import main as app_main
-        app_main(model_path=args.model, camera_id=camera_id)
+        app_main(model_path=args.model, camera_id=camera_id, debug_overlay=args.debug_overlay)
         return
 
     # If no arguments provided (other than the script name), try interactive selection
@@ -94,7 +95,7 @@ def main():
         from .app import select_model_interactively, main as app_main
         selected_model = select_model_interactively()
         if selected_model:
-            app_main(model_path=selected_model, camera_id=camera_id)
+            app_main(model_path=selected_model, camera_id=camera_id, debug_overlay=args.debug_overlay)
             return
         # If no models found or user canceled, the application exits.
     print("No model selected. Exiting.", file=sys.stderr)

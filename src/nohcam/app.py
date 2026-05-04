@@ -5,6 +5,7 @@ import warnings
 print("Imports successful", flush=True)
 
 import cv2
+import numpy as np
 import pygame
 from pygame.locals import *
 import questionary
@@ -14,16 +15,98 @@ from OpenGL.GL import *
 import live2d.v3 as live2d
 from .tracker import Tracker
 from live2d.v3.params import StandardParams
+from .landmark_drawer import draw_landmarks
 
 
 WIDTH, HEIGHT = 1280, 720
 ARM_TRACKING_GAIN = 2.2
+
+# Overlay dimensions (top-left 1/4 of screen)
+OVERLAY_WIDTH = WIDTH // 2  # 640
+OVERLAY_HEIGHT = HEIGHT // 2  # 360
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class OverlayRenderer:
+    """Manages overlay texture rendering for debug landmarks."""
+    
+    def __init__(self):
+        self.texture_id = None
+        self.texture_data = None
+    
+    def create_texture(self):
+        """Create an OpenGL texture for the overlay."""
+        self.texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, OVERLAY_WIDTH, OVERLAY_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, None)
+        glBindTexture(GL_TEXTURE_2D, 0)
+    
+    def update_texture(self, cv_image):
+        """Update the texture with new image data."""
+        if self.texture_id is None:
+            self.create_texture()
+        
+        # Convert BGR to RGBA
+        rgba_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGBA)
+        
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
+        glBindTexture(GL_TEXTURE_2D, 0)
+    
+    def render(self):
+        """Render the overlay texture as a 2D quad in the top-left corner."""
+        if self.texture_id is None:
+            return
+        
+        # Save current OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, WIDTH, HEIGHT, 0, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        
+        glDisable(GL_DEPTH_TEST)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        
+        glBegin(GL_QUADS)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glTexCoord2f(0, 0)
+        glVertex2f(0, 0)
+        glTexCoord2f(1, 0)
+        glVertex2f(OVERLAY_WIDTH, 0)
+        glTexCoord2f(1, 1)
+        glVertex2f(OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        glTexCoord2f(0, 1)
+        glVertex2f(0, OVERLAY_HEIGHT)
+        glEnd()
+        
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)
+        glEnable(GL_DEPTH_TEST)
+        
+        # Restore OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+    
+    def cleanup(self):
+        """Delete the texture."""
+        if self.texture_id is not None:
+            glDeleteTextures([self.texture_id])
+            self.texture_id = None
 
 
 def find_all_models(start_dir: str = ".") -> list[str]:
@@ -90,7 +173,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: str = None, camera_id: int = 0):
+def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = False):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -182,6 +265,11 @@ def main(model_path: str = None, camera_id: int = 0):
     manual_angle_y = 0.0
     arm_l_value = 0.0
     arm_r_value = 0.0
+    
+    overlay_renderer = None
+    if debug_overlay:
+        overlay_renderer = OverlayRenderer()
+        print("Debug overlay enabled", flush=True)
 
     clock = pygame.time.Clock()
     running = True
@@ -301,6 +389,22 @@ def main(model_path: str = None, camera_id: int = 0):
                 model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
 
         model.Draw()
+        
+        # Render debug overlay if enabled
+        if debug_overlay and overlay_renderer and tracking_result:
+            overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 3), dtype=np.uint8)
+            
+            # Draw landmarks on overlay frame
+            draw_landmarks(
+                overlay_frame,
+                tracking_result.face if tracking_result.face else None,
+                tracking_result.hands[0].landmarks if tracking_result.hands and len(tracking_result.hands) > 0 else None,
+                tracking_result.hands[1].landmarks if tracking_result.hands and len(tracking_result.hands) > 1 else None,
+                tracking_result.pose if tracking_result.pose else None,
+            )
+            
+            overlay_renderer.update_texture(overlay_frame)
+            overlay_renderer.render()
 
         ax = model.GetParameter(0).value if param_angle_x is not None else 0
         ay = model.GetParameter(1).value if param_angle_y is not None else 0
@@ -310,6 +414,8 @@ def main(model_path: str = None, camera_id: int = 0):
         clock.tick(30)
 
     tracker.stop()
+    if overlay_renderer:
+        overlay_renderer.cleanup()
     live2d.glRelease()
     live2d.dispose()
     pygame.quit()
