@@ -113,11 +113,19 @@ class MainFrame(wx.Frame):
             return
 
         frame = self.current_frame.copy()
+        h, w = frame.shape[:2]
+
+        # Draw Live2D-like overlay in the top-left 1/4 area
+        overlay = np.zeros((h // 2, w // 2, 3), dtype=np.uint8)
+        if self.latest_result:
+            self._draw_overlay_1_4(overlay, self.latest_result)
+        
+        # Place the overlay on the original frame
+        frame[0:h // 2, 0:w // 2] = overlay
 
         if self.latest_result:
             frame = self._draw_overlays(frame, self.latest_result)
 
-        h, w = frame.shape[:2]
         bmp = wx.Bitmap.FromBufferRGBA(w, h, cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA))
 
         cw, ch = self.canvas.GetSize()
@@ -128,6 +136,23 @@ class MainFrame(wx.Frame):
         dc = wx.ClientDC(self.canvas)
         dc.Clear()
         dc.DrawBitmap(bmp, 0, 0)
+
+    def _draw_overlay_1_4(self, overlay, result):
+        h, w = overlay.shape[:2]
+        
+        # Logic for rendering landmarks on the overlay
+        # Since this is a 1/4 size (1/2 width, 1/2 height), 
+        # we scale the coordinates accordingly from the original result (0.0 to 1.0)
+        
+        # Example: Drawing only facial points for Live2D-like effect in the small area
+        if result.face_landmarks:
+            face_pts = [(int(lm.x * w), int(lm.y * h)) for lm in result.face_landmarks]
+
+            for i in range(len(face_pts) - 1):
+                cv2.line(overlay, face_pts[i], face_pts[i + 1], (255, 255, 255), 1)
+
+            cv2.polylines(overlay, [np.array([face_pts[i] for i in FACE_OUTLINE], np.int32)], True, (255, 255, 255), 2)
+
 
     def _draw_overlays(self, frame, result):
         h, w = frame.shape[:2]
