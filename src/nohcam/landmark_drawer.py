@@ -41,9 +41,9 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
     """Draw face, hand, and pose landmarks on a frame."""
     h, w = frame.shape[:2]
     
-    # Background fill: Semi-transparent dark for visibility
+    # Background fill: Transparent if RGBA, black if BGR
     if frame.shape[2] == 4:
-        frame[:] = (0, 0, 0, 64)  # Semi-transparent black
+        frame[:] = (0, 0, 0, 0)
     else:
         frame[:] = (0, 0, 0)
     
@@ -70,7 +70,7 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
                         cv2.line(frame, face_pts[i], face_pts[j], color_line, 2)
                         connections_count += 1
             for pt in face_pts:
-                cv2.circle(frame, pt, 4, color_point, -1)
+                cv2.circle(frame, pt, 2, color_point, -1)
             print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points on {w}x{h} frame.", flush=True)
         else:
             # Draw simplified outline for Holistic
