@@ -447,8 +447,6 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             if param_angle_y is not None:
                 model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
 
-        model.Draw()
-        
         # Apply Blendshapes from Face Landmarker
         if auto_track and tracking_result and tracking_result.blendshapes:
             bs = tracking_result.blendshapes
@@ -464,13 +462,18 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             smile_l = bs.get("mouthSmileLeft", 0.0)
             smile_r = bs.get("mouthSmileRight", 0.0)
             mouth_form = (smile_l + smile_r) / 2.0  # 0 to 1
-            # Map 0..1 to -1..1 or similar. Let's use 0..1 as "smiling"
             
-            # Apply to model
-            model.SetParameterValue("ParamEyeLOpen", eye_l_open, 1.0)
-            model.SetParameterValue("ParamEyeROpen", eye_r_open, 1.0)
-            model.SetParameterValue("ParamMouthOpenY", mouth_open, 1.0)
-            model.SetParameterValue("ParamMouthForm", mouth_form, 1.0)
+            # Apply to model using Index for reliability
+            if param_eye_l_open is not None:
+                model.SetIndexParamValue(param_eye_l_open, eye_l_open, 1.0)
+            if param_eye_r_open is not None:
+                model.SetIndexParamValue(param_eye_r_open, eye_r_open, 1.0)
+            if param_mouth_open_y is not None:
+                model.SetIndexParamValue(param_mouth_open_y, mouth_open, 1.0)
+            if param_mouth_form is not None:
+                model.SetIndexParamValue(param_mouth_form, mouth_form, 1.0)
+
+        model.Draw()
 
         # Render landmark overlays
         if tracking_result:
@@ -487,18 +490,12 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 holistic_overlay.update_texture(h_frame)
                 holistic_overlay.render()
             
-            # 2. Face Overlay (Bottom-left) - Fallback to holistic face if face_mesh is missing
+            # 2. Face Overlay (Bottom-left)
             mesh_to_draw = tracking_result.face_mesh
-            if frame % 30 == 0:
-                print(f"DEBUG app.py: face_mesh={type(tracking_result.face_mesh)}, len(face)={len(tracking_result.face)}", flush=True)
-            if not mesh_to_draw and len(tracking_result.face) >= 468: # 468 is base mesh, 478 includes iris
+            if not mesh_to_draw and len(tracking_result.face) >= 468:
                 mesh_to_draw = tracking_result.face
-                if frame % 30 == 0:
-                    print(f"DEBUG app.py: Using fallback face as mesh_to_draw", flush=True)
-
+                
             if face_overlay and mesh_to_draw:
-                if frame % 30 == 0:
-                    print(f"DEBUG app.py: Drawing face overlay with {len(mesh_to_draw)} landmarks", flush=True)
                 f_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
                 draw_landmarks(
                     f_frame,

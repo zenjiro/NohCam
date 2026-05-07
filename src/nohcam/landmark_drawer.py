@@ -53,12 +53,6 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
     if face_landmarks:
         face_pts = [(int(lm.x * w), int(lm.y * h)) for lm in face_landmarks]
 
-        if detail_face and len(face_pts) > 0:
-            # DEBUG: Check coordinate ranges
-            xs = [pt[0] for pt in face_pts]
-            ys = [pt[1] for pt in face_pts]
-            print(f"DEBUG: Face points x range: {min(xs)}-{max(xs)}, y range: {min(ys)}-{max(ys)} (frame: {w}x{h})", flush=True)
-
         if detail_face:
             # Draw detailed mesh connections for Face Landmarker
             # Red lines (RGB: 255, 0, 0), Cyan points (RGB: 0, 255, 255)
@@ -76,6 +70,8 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
                     if i < len(face_pts) and j < len(face_pts):
                         cv2.line(frame, face_pts[i], face_pts[j], color_line, 2)
                         connections_count += 1
+
+            print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points.", flush=True)
 
         else:
             # Draw simplified outline for Holistic
