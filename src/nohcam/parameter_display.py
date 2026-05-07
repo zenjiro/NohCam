@@ -42,10 +42,14 @@ class ParameterDisplayRenderer:
         model_ranges = self._load_ranges_from_json(model_path) if model_path else {}
         
         # Parameters to display with fallback ranges
+        # Supports both PARAM_ANGLE_* and PARAM_BODY_ANGLE_* naming conventions
         display_params = {
-            "PARAM_ANGLE_X": (-30, 30),
-            "PARAM_ANGLE_Y": (-30, 30),
-            "PARAM_ANGLE_Z": (-30, 30),
+            "ANGLE_X": (-30, 30),
+            "ANGLE_Y": (-30, 30),
+            "ANGLE_Z": (-30, 30),
+            "BODY_ANGLE_X": (-30, 30),
+            "BODY_ANGLE_Y": (-30, 30),
+            "BODY_ANGLE_Z": (-30, 30),
             "PARAM_BODY_X": (-15, 15),
             "PARAM_BODY_Y": (-10, 10),
             "PARAM_BODY_Z": (-30, 30),
