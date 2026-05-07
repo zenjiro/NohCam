@@ -51,6 +51,10 @@ class ParameterDisplayRenderer:
             ("BODYZ", "BodyZ"),
             ("ARML", "ArmL"),
             ("ARMR", "ArmR"),
+            ("EYELOPEN", "EyeLOpen"),
+            ("EYEROPEN", "EyeROpen"),
+            ("MOUTHOPENY", "MouthOpenY"),
+            ("MOUTHFORM", "MouthForm"),
         ]
         
         self.param_info = {}
