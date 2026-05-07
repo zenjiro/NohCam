@@ -53,8 +53,13 @@ class OverlayRenderer:
         if self.texture_id is None:
             self.create_texture()
         
-        # Convert BGR to RGBA
-        rgba_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGBA)
+        # Handle both BGR and RGBA images
+        if cv_image.shape[2] == 3:
+            # Convert BGR to RGBA
+            rgba_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGBA)
+        else:
+            # Already RGBA
+            rgba_image = cv_image
         
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
@@ -173,7 +178,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = False):
+def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = True):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -392,9 +397,9 @@ def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = False
         
         # Render debug overlay if enabled
         if debug_overlay and overlay_renderer and tracking_result:
-            overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 3), dtype=np.uint8)
+            overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
             
-            # Draw landmarks on overlay frame
+            # Draw landmarks on overlay frame (with alpha channel)
             draw_landmarks(
                 overlay_frame,
                 tracking_result.face if tracking_result.face else None,
