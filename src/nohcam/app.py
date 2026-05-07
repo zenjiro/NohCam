@@ -277,7 +277,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     print("Landmark overlay enabled", flush=True)
 
     param_display_renderer = ParameterDisplayRenderer(width=WIDTH, height=HEIGHT)
-    param_display_renderer.set_parameters(model)
+    param_display_renderer.set_parameters(model, model_path=model_path)
     print("Parameter display enabled", flush=True)
 
     clock = pygame.time.Clock()
