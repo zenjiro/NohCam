@@ -61,10 +61,15 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
 
         if detail_face:
             # Draw detailed mesh connections for Face Landmarker
-            color_line = (255, 0, 0, 255) if is_rgba else (255, 0, 0)
-            color_point = (0, 255, 255, 255) if is_rgba else (0, 255, 255)
+            # Red lines (RGB: 255, 0, 0), Cyan points (RGB: 0, 255, 255)
+            color_line = (255, 0, 0, 255) if is_rgba else (255, 0, 0) # Red
+            color_point = (0, 255, 255, 255) if is_rgba else (0, 255, 255) # Cyan
 
-            # 1. Draw connections (Lines)
+            # 1. Draw points (Circles) FIRST
+            for pt in face_pts:
+                cv2.circle(frame, pt, 2, color_point, -1)
+
+            # 2. Draw connections (Lines) SECOND (on top)
             connections_count = 0
             for connections in [FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_RIGHT_EYE, FACEMESH_LEFT_IRIS, FACEMESH_RIGHT_IRIS]:
                 for i, j in connections:
@@ -72,12 +77,7 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
                         cv2.line(frame, face_pts[i], face_pts[j], color_line, 2)
                         connections_count += 1
 
-            # 2. Draw points (Circles) - Drawn AFTER lines
-            for pt in face_pts:
-                cv2.circle(frame, pt, 2, color_point, -1)
-
-            print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points on {w}x{h} frame.", flush=True)
-
+            print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points.", flush=True)
         else:
             # Draw simplified outline for Holistic
             for i in range(len(face_pts) - 1):
