@@ -67,8 +67,8 @@ class OverlayRenderer:
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
         glBindTexture(GL_TEXTURE_2D, 0)
     
-    def render(self, x=0, y=0):
-        """Render the overlay texture as a 2D quad at position (x, y)."""
+    def render(self):
+        """Render the overlay texture as a 2D quad in the top-left corner."""
         if self.texture_id is None:
             return
         
@@ -90,13 +90,13 @@ class OverlayRenderer:
         glBegin(GL_QUADS)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glTexCoord2f(0, 0)
-        glVertex2f(x, y)
+        glVertex2f(0, 0)
         glTexCoord2f(1, 0)
-        glVertex2f(x + OVERLAY_WIDTH, y)
+        glVertex2f(OVERLAY_WIDTH, 0)
         glTexCoord2f(1, 1)
-        glVertex2f(x + OVERLAY_WIDTH, y + OVERLAY_HEIGHT)
+        glVertex2f(OVERLAY_WIDTH, OVERLAY_HEIGHT)
         glTexCoord2f(0, 1)
-        glVertex2f(x, y + OVERLAY_HEIGHT)
+        glVertex2f(0, OVERLAY_HEIGHT)
         glEnd()
         
         glDisable(GL_TEXTURE_2D)
@@ -276,8 +276,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     body_y_value = 0.0
     body_z_value = 0.0
     
-    overlay_renderer = OverlayRenderer()
-    print("Landmark overlay enabled", flush=True)
+    pose_overlay_renderer = OverlayRenderer()
+    face_overlay_renderer = OverlayRenderer()
+    print("Pose and face landmark overlays enabled", flush=True)
 
     param_display_renderer = ParameterDisplayRenderer(width=WIDTH, height=HEIGHT)
     param_display_renderer.set_parameters(model, model_path=model_path)
@@ -425,21 +426,37 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
         model.Draw()
         
-        # Render landmark overlay
-        if overlay_renderer and tracking_result:
-            overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
+        # Render landmark overlays
+        if tracking_result:
+            # Create separate frames for pose and face landmarks
+            pose_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
+            face_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
             
-            # Draw landmarks on overlay frame (with alpha channel)
+            # Draw pose landmarks on pose frame (top-left corner)
             draw_landmarks(
-                overlay_frame,
-                tracking_result.face if tracking_result.face else None,
+                pose_frame,
+                None,  # No face
                 tracking_result.hands[0].landmarks if tracking_result.hands and len(tracking_result.hands) > 0 else None,
                 tracking_result.hands[1].landmarks if tracking_result.hands and len(tracking_result.hands) > 1 else None,
                 tracking_result.pose if tracking_result.pose else None,
             )
             
-            overlay_renderer.update_texture(overlay_frame)
-            overlay_renderer.render()
+            # Draw face landmarks on face frame (bottom-left corner)
+            draw_landmarks(
+                face_frame,
+                tracking_result.face if tracking_result.face else None,
+                None,  # No hands
+                None,  # No hands
+                None,  # No pose
+            )
+            
+            # Render pose overlay at top-left
+            pose_overlay_renderer.update_texture(pose_frame)
+            pose_overlay_renderer.render(0, 0)  # Top-left corner
+            
+            # Render face overlay at bottom-left
+            face_overlay_renderer.update_texture(face_frame)
+            face_overlay_renderer.render(0, HEIGHT - OVERLAY_HEIGHT)  # Bottom-left corner
 
         # Render parameter display
         if param_display_renderer:
