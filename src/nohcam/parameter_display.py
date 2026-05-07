@@ -33,73 +33,42 @@ class ParameterDisplayRenderer:
     def set_parameters(self, model_obj, model_path: Optional[str] = None) -> None:
         """Extract parameter information from Live2D model.
         
-        Tries to get parameter ranges from the model JSON file first.
-        Falls back to default ranges if JSON is not accessible.
+        Gets parameter ranges directly from the model objects.
         """
         param_ids = model_obj.GetParamIds()
         
-        # Try to load parameter ranges from model JSON
-        model_ranges = self._load_ranges_from_json(model_path) if model_path else {}
-        
-        # Parameters to display with fallback ranges
+        # Parameters to display
         # Supports both PARAM_ANGLE_* and PARAM_BODY_ANGLE_* naming conventions
-        display_params = {
-            "ANGLE_X": (-30, 30),
-            "ANGLE_Y": (-30, 30),
-            "ANGLE_Z": (-30, 30),
-            "BODY_ANGLE_X": (-30, 30),
-            "BODY_ANGLE_Y": (-30, 30),
-            "BODY_ANGLE_Z": (-30, 30),
-            "PARAM_BODY_X": (-15, 15),
-            "PARAM_BODY_Y": (-10, 10),
-            "PARAM_BODY_Z": (-30, 30),
-            "PARAM_ARM_L": (-60, 60),
-            "PARAM_ARM_R": (-60, 60),
-        }
+        display_params = [
+            "ANGLE_X",
+            "ANGLE_Y",
+            "ANGLE_Z",
+            "BODY_ANGLE_X",
+            "BODY_ANGLE_Y",
+            "BODY_ANGLE_Z",
+            "PARAM_BODY_X",
+            "PARAM_BODY_Y",
+            "PARAM_BODY_Z",
+            "PARAM_ARM_L",
+            "PARAM_ARM_R",
+        ]
+        
+        self.param_info = {}
+        self.param_values = {}
         
         for i, param_id in enumerate(param_ids):
             param_name_upper = param_id.upper()
-            for display_param, (default_min, default_max) in display_params.items():
+            for display_param in display_params:
                 if display_param in param_name_upper:
-                    # Try to use JSON-loaded range, fall back to default
-                    min_val = model_ranges.get(param_id, {}).get("min", default_min)
-                    max_val = model_ranges.get(param_id, {}).get("max", default_max)
+                    param_obj = model_obj.GetParameter(i)
                     
                     self.param_info[i] = {
                         "name": param_id,
-                        "min": min_val,
-                        "max": max_val,
+                        "min": float(param_obj.min),
+                        "max": float(param_obj.max),
                     }
-                    self.param_values[i] = 0.0
+                    self.param_values[i] = float(param_obj.value)
                     break
-
-    def _load_ranges_from_json(self, model_path: str) -> Dict[str, Dict[str, float]]:
-        """Load parameter ranges from Live2D model JSON file.
-        
-        Returns: {param_id: {"min": float, "max": float}, ...}
-        """
-        try:
-            with open(model_path, 'r', encoding='utf-8') as f:
-                model_json = json.load(f)
-            
-            ranges = {}
-            if 'Parameters' in model_json:
-                for param in model_json['Parameters']:
-                    if 'Id' in param:
-                        param_id = param['Id']
-                        min_val = param.get('MinimumValue', None)
-                        max_val = param.get('MaximumValue', None)
-                        
-                        if min_val is not None and max_val is not None:
-                            ranges[param_id] = {
-                                "min": float(min_val),
-                                "max": float(max_val),
-                            }
-            
-            return ranges
-        except (json.JSONDecodeError, IOError, KeyError):
-            # If JSON loading fails, return empty dict (will use defaults)
-            return {}
 
     def update_parameter_values(self, model_obj) -> None:
         """Update current parameter values from model."""
