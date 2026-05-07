@@ -67,8 +67,8 @@ class OverlayRenderer:
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
         glBindTexture(GL_TEXTURE_2D, 0)
     
-    def render(self):
-        """Render the overlay texture as a 2D quad in the bottom-left corner."""
+    def render(self, x=0, y=0):
+        """Render the overlay texture as a 2D quad at position (x, y)."""
         if self.texture_id is None:
             return
         
@@ -87,20 +87,16 @@ class OverlayRenderer:
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
         
-        # Position at bottom-left corner
-        overlay_x = 0
-        overlay_y = HEIGHT - OVERLAY_HEIGHT
-        
         glBegin(GL_QUADS)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glTexCoord2f(0, 0)
-        glVertex2f(overlay_x, overlay_y)
+        glVertex2f(x, y)
         glTexCoord2f(1, 0)
-        glVertex2f(overlay_x + OVERLAY_WIDTH, overlay_y)
+        glVertex2f(x + OVERLAY_WIDTH, y)
         glTexCoord2f(1, 1)
-        glVertex2f(overlay_x + OVERLAY_WIDTH, overlay_y + OVERLAY_HEIGHT)
+        glVertex2f(x + OVERLAY_WIDTH, y + OVERLAY_HEIGHT)
         glTexCoord2f(0, 1)
-        glVertex2f(overlay_x, overlay_y + OVERLAY_HEIGHT)
+        glVertex2f(x, y + OVERLAY_HEIGHT)
         glEnd()
         
         glDisable(GL_TEXTURE_2D)
