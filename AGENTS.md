@@ -24,13 +24,19 @@ uv sync
 uv run nohcam
 
 # Run tracker GUI (visual debugger)
-uv run nohcam --gui
+uv run nohcam --debug-landmarks
 
-# Run Live2D viewer with auto-tracking
-uv run nohcam --live2d
+# List available cameras
+uv run nohcam --list-cameras
+
+# Run Live2D viewer (interactive model selection)
+uv run nohcam
 
 # Run Live2D viewer with a specific model
-uv run nohcam --live2d --model path/to/model.model3.json
+uv run nohcam --model path/to/model.model3.json
+
+# Specify camera for Live2D viewer
+uv run nohcam --model path/to/model.model3.json --camera 1
 ```
 
 ## Module Structure

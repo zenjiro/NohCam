@@ -1,6 +1,7 @@
 import sys
 import os
 import warnings
+from typing import Optional
 # warnings.filterwarnings("ignore")
 print("Imports successful", flush=True)
 
@@ -178,7 +179,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: str = None, camera_id: int = 0):
+def main(model_path: Optional[str] = None, camera_id: int = 0):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -329,7 +330,7 @@ def main(model_path: str = None, camera_id: int = 0):
             left_dist  = nose.x - eye_l.x
             right_dist = eye_r.x - nose.x
             denom = max(left_dist + right_dist, 0.001)
-            angle_x = (right_dist - left_dist) / denom * 120
+            angle_x = -(right_dist - left_dist) / denom * 120
 
             # 上下回転: 顔の縦幅内での鼻の位置比率（上向き↑正、下向き↓負）
             face_h = chin.y - forehead.y
@@ -337,7 +338,7 @@ def main(model_path: str = None, camera_id: int = 0):
             angle_y = (0.45 - nose_ratio) * 300
 
             # ロール: 目の高さ差
-            angle_z = -(eye_r.y - eye_l.y) * 800
+            angle_z = (eye_r.y - eye_l.y) * 800
 
             if param_angle_x is not None:
                 model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
