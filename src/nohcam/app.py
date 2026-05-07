@@ -74,7 +74,17 @@ class OverlayRenderer:
         if self.texture_id is None:
             return
         
-        # Save current OpenGL state
+        # Save OpenGL state
+        glPushAttrib(GL_ALL_ATTRIB_BITS)
+        
+        glDisable(GL_DEPTH_TEST)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_TEXTURE_2D)
+        
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        
+        # Ortho projection
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
         glLoadIdentity()
@@ -83,33 +93,29 @@ class OverlayRenderer:
         glPushMatrix()
         glLoadIdentity()
         
-        glDisable(GL_DEPTH_TEST)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        # Calculate vertices
+        x1, y1 = self.x, self.y
+        x2, y2 = self.x + OVERLAY_WIDTH, self.y + OVERLAY_HEIGHT
         
         glBegin(GL_QUADS)
         glColor4f(1.0, 1.0, 1.0, 1.0)
-        glTexCoord2f(0, 0)
-        glVertex2f(self.x, self.y)
-        glTexCoord2f(1, 0)
-        glVertex2f(self.x + OVERLAY_WIDTH, self.y)
-        glTexCoord2f(1, 1)
-        glVertex2f(self.x + OVERLAY_WIDTH, self.y + OVERLAY_HEIGHT)
-        glTexCoord2f(0, 1)
-        glVertex2f(self.x, self.y + OVERLAY_HEIGHT)
+        glTexCoord2f(0, 0); glVertex2f(x1, y1)
+        glTexCoord2f(1, 0); glVertex2f(x2, y1)
+        glTexCoord2f(1, 1); glVertex2f(x2, y2)
+        glTexCoord2f(0, 1); glVertex2f(x1, y2)
         glEnd()
-        
-        glDisable(GL_TEXTURE_2D)
-        glDisable(GL_BLEND)
-        glEnable(GL_DEPTH_TEST)
         
         # Restore OpenGL state
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         glMatrixMode(GL_MODELVIEW)
         glPopMatrix()
+        
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)
+        glBindTexture(GL_TEXTURE_2D, 0)
+        
+        glPopAttrib()
     
     def cleanup(self):
         """Delete the texture."""
@@ -238,6 +244,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     param_body_z = None
     param_arm_l = None
     param_arm_r = None
+    param_eye_l_open = None
+    param_eye_r_open = None
+    param_mouth_open_y = None
+    param_mouth_form = None
 
     for i, p in enumerate(param_ids):
         p_norm = p.upper().replace("_", "")
@@ -253,6 +263,14 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             param_angle_y = i
         elif "ANGLEZ" in p_norm and param_angle_z is None:
             param_angle_z = i
+        elif "EYELOPEN" in p_norm and param_eye_l_open is None:
+            param_eye_l_open = i
+        elif "EYEROPEN" in p_norm and param_eye_r_open is None:
+            param_eye_r_open = i
+        elif "MOUTHOPENY" in p_norm and param_mouth_open_y is None:
+            param_mouth_open_y = i
+        elif "MOUTHFORM" in p_norm and param_mouth_form is None:
+            param_mouth_form = i
         elif "ARML" in p_norm and param_arm_l is None:
             if "LB" not in p_norm:
                 param_arm_l = i
@@ -261,6 +279,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 param_arm_r = i
 
     print(f"Found: AngleX={param_angle_x}, AngleY={param_angle_y}, AngleZ={param_angle_z}, BodyX={param_body_x}, BodyY={param_body_y}, BodyZ={param_body_z}", flush=True)
+    print(f"Found Expression: EyeLOpen={param_eye_l_open}, EyeROpen={param_eye_r_open}, MouthOpenY={param_mouth_open_y}, MouthForm={param_mouth_form}", flush=True)
 
     tracker = Tracker(camera_id=camera_id)
     print(f"Opening camera {camera_id}...", flush=True)
@@ -467,12 +486,16 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 holistic_overlay.update_texture(h_frame)
                 holistic_overlay.render()
             
-            # 2. Face Overlay (Bottom-left)
-            if face_overlay and tracking_result.face_mesh:
+            # 2. Face Overlay (Bottom-left) - Fallback to holistic face if face_mesh is missing
+            mesh_to_draw = tracking_result.face_mesh
+            if not mesh_to_draw and len(tracking_result.face) >= 468: # 468 is base mesh, 478 includes iris
+                mesh_to_draw = tracking_result.face
+                
+            if face_overlay and mesh_to_draw:
                 f_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
                 draw_landmarks(
                     f_frame,
-                    tracking_result.face_mesh,
+                    mesh_to_draw,
                     None, None, None,
                     detail_face=True  # Show detailed connections
                 )
