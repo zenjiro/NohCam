@@ -33,29 +33,29 @@ class ParameterDisplayRenderer:
         """Extract parameter information from Live2D model."""
         param_ids = model_obj.GetParamIds()
         
-        # Parameters to display
-        display_params = [
-            "PARAM_ANGLE_X",
-            "PARAM_ANGLE_Y",
-            "PARAM_ANGLE_Z",
-            "PARAM_BODY_X",
-            "PARAM_BODY_Y",
-            "PARAM_BODY_Z",
-            "PARAM_ARM_L",
-            "PARAM_ARM_R",
-        ]
+        # Parameters to display with their typical ranges
+        display_params = {
+            "PARAM_ANGLE_X": (-30, 30),
+            "PARAM_ANGLE_Y": (-45, 45),
+            "PARAM_ANGLE_Z": (-30, 30),
+            "PARAM_BODY_X": (-15, 15),
+            "PARAM_BODY_Y": (-10, 10),
+            "PARAM_BODY_Z": (-30, 30),
+            "PARAM_ARM_L": (-60, 60),
+            "PARAM_ARM_R": (-60, 60),
+        }
         
         for i, param_id in enumerate(param_ids):
-            # Check if this parameter should be displayed
             param_name_upper = param_id.upper()
-            if any(dp in param_name_upper for dp in display_params):
-                param_obj = model_obj.GetParameter(i)
-                self.param_info[i] = {
-                    "name": param_id,
-                    "min": param_obj.minValue,
-                    "max": param_obj.maxValue,
-                }
-                self.param_values[i] = 0.0
+            for display_param, (min_val, max_val) in display_params.items():
+                if display_param in param_name_upper:
+                    self.param_info[i] = {
+                        "name": param_id,
+                        "min": min_val,
+                        "max": max_val,
+                    }
+                    self.param_values[i] = 0.0
+                    break
 
     def update_parameter_values(self, model_obj) -> None:
         """Update current parameter values from model."""
