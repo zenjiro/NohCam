@@ -473,7 +473,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 draw_landmarks(
                     f_frame,
                     tracking_result.face_mesh,
-                    None, None, None
+                    None, None, None,
+                    detail_face=True  # Show detailed connections
                 )
                 face_overlay.update_texture(f_frame)
                 face_overlay.render()

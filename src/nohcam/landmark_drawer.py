@@ -30,7 +30,14 @@ POSE_CONNECTIONS = [
 FACE_OUTLINE = [10, 338, 297, 332, 284, 328, 291, 324, 318, 196, 389, 394, 364, 292, 439, 276, 53, 412, 476, 356, 11]
 
 
-def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landmarks, pose_landmarks):
+FACEMESH_LIPS = [(61, 146), (146, 91), (91, 181), (181, 84), (84, 17), (17, 314), (314, 405), (405, 321), (321, 375), (375, 291), (61, 185), (185, 40), (40, 39), (39, 37), (37, 0), (0, 267), (267, 269), (269, 270), (270, 409), (409, 291), (78, 95), (95, 88), (88, 178), (178, 87), (87, 14), (14, 317), (317, 402), (402, 318), (318, 324), (324, 308), (78, 191), (191, 80), (80, 81), (81, 82), (82, 13), (13, 312), (312, 311), (311, 310), (310, 415), (415, 308)]
+FACEMESH_LEFT_EYE = [(263, 249), (249, 390), (390, 373), (373, 374), (374, 380), (380, 381), (381, 382), (382, 362), (263, 466), (466, 388), (388, 387), (387, 386), (386, 385), (385, 384), (384, 398), (398, 362)]
+FACEMESH_RIGHT_EYE = [(33, 7), (7, 163), (163, 144), (144, 145), (145, 153), (153, 154), (154, 155), (155, 133), (33, 246), (246, 161), (161, 160), (160, 159), (159, 158), (158, 157), (157, 173), (173, 133)]
+FACEMESH_LEFT_IRIS = [(474, 475), (475, 476), (476, 477), (477, 474)]
+FACEMESH_RIGHT_IRIS = [(469, 470), (470, 471), (471, 472), (472, 469)]
+
+
+def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landmarks, pose_landmarks, detail_face=False):
     """Draw face, hand, and pose landmarks on a frame."""
     h, w = frame.shape[:2]
     
@@ -40,10 +47,19 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
     if face_landmarks:
         face_pts = [(int(lm.x * w), int(lm.y * h)) for lm in face_landmarks]
         
-        for i in range(len(face_pts) - 1):
-            cv2.line(frame, face_pts[i], face_pts[i + 1], (0, 255, 0, 255) if is_rgba else (0, 255, 0), 1)
-        
-        cv2.polylines(frame, [np.array([face_pts[i] for i in FACE_OUTLINE], np.int32)], True, (0, 255, 0, 255) if is_rgba else (0, 255, 0), 2)
+        if detail_face:
+            # Draw detailed mesh connections for Face Landmarker
+            color = (255, 255, 255, 255) if is_rgba else (255, 255, 255)
+            for connections in [FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_RIGHT_EYE, FACEMESH_LEFT_IRIS, FACEMESH_RIGHT_IRIS]:
+                for i, j in connections:
+                    if i < len(face_pts) and j < len(face_pts):
+                        cv2.line(frame, face_pts[i], face_pts[j], color, 1)
+        else:
+            # Draw simplified outline for Holistic
+            for i in range(len(face_pts) - 1):
+                cv2.line(frame, face_pts[i], face_pts[i + 1], (0, 255, 0, 255) if is_rgba else (0, 255, 0), 1)
+            
+            cv2.polylines(frame, [np.array([face_pts[i] for i in FACE_OUTLINE], np.int32)], True, (0, 255, 0, 255) if is_rgba else (0, 255, 0), 2)
     
     if left_hand_landmarks:
         hand_pts = [(int(lm.x * w), int(lm.y * h)) for lm in left_hand_landmarks]
