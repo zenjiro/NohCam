@@ -272,6 +272,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     manual_angle_y = 0.0
     arm_l_value = 0.0
     arm_r_value = 0.0
+    body_x_value = 0.0
+    body_y_value = 0.0
+    body_z_value = 0.0
     
     overlay_renderer = OverlayRenderer()
     print("Landmark overlay enabled", flush=True)
@@ -323,6 +326,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         model.Update()
 
         # Update() 後にパラメータを設定（LoadParameters() のリセットを回避）
+        target_body_x = 0.0
+        target_body_y = 0.0
+        target_body_z = 0.0
+
         if auto_track and tracking_result and len(tracking_result.face) > 263:
             lm = tracking_result.face
             nose     = lm[4]    # 鼻先
@@ -345,20 +352,18 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             # ロール: 目の高さ差
             angle_z = (eye_r.y - eye_l.y) * 800
 
+            target_body_x += angle_x * 0.3
+            target_body_y += angle_y * 0.3
+            target_body_z += angle_z * 0.3
+
             if param_angle_x is not None:
                 model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
             if param_angle_y is not None:
                 model.SetIndexParamValue(param_angle_y, angle_y, 1.0)
             if param_angle_z is not None:
                 model.SetIndexParamValue(param_angle_z, angle_z, 1.0)
-            if param_body_x is not None:
-                model.SetIndexParamValue(param_body_x, angle_x * 0.3, 1.0)
-            if param_body_y is not None:
-                model.SetIndexParamValue(param_body_y, angle_y * 0.3, 1.0)
-            if param_body_z is not None:
-                model.SetIndexParamValue(param_body_z, angle_z * 0.3, 1.0)
 
-        # MediaPipe Pose から腕パラメータを更新
+        # MediaPipe Pose から腕・体パラメータを更新
         if auto_track and tracking_result and len(tracking_result.pose) > 16:
             pose = tracking_result.pose
             ls = pose[11]  # left shoulder
@@ -367,6 +372,14 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             re = pose[14]  # right elbow
             lw = pose[15]  # left wrist
             rw = pose[16]  # right wrist
+
+            # 体の傾き (Pose)
+            # Roll: 肩の高さの差
+            target_body_z += (rs.y - ls.y) * 400.0
+            # Yaw: 肩の前後差 (Z座標)
+            target_body_x += -(ls.z - rs.z) * 150.0
+            # Pitch: 肩の前後位置 (平均Z座標)
+            target_body_y += (ls.z + rs.z) / 2.0 * 150.0
 
             left_lift = (ls.y - lw.y) * 260.0
             left_open = (lw.x - ls.x) * 80.0
@@ -390,6 +403,19 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 model.SetIndexParamValue(param_arm_l, arm_r_value, 1.0)
             if param_arm_r is not None:
                 model.SetIndexParamValue(param_arm_r, arm_l_value, 1.0)
+
+        if auto_track:
+            # 体の傾きのジッタ低減
+            body_x_value = body_x_value + (target_body_x - body_x_value) * 0.25
+            body_y_value = body_y_value + (target_body_y - body_y_value) * 0.25
+            body_z_value = body_z_value + (target_body_z - body_z_value) * 0.25
+
+            if param_body_x is not None:
+                model.SetIndexParamValue(param_body_x, body_x_value, 1.0)
+            if param_body_y is not None:
+                model.SetIndexParamValue(param_body_y, body_y_value, 1.0)
+            if param_body_z is not None:
+                model.SetIndexParamValue(param_body_z, body_z_value, 1.0)
 
         elif not auto_track:
             if param_angle_x is not None:
