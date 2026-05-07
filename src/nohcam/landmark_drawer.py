@@ -41,9 +41,9 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
     """Draw face, hand, and pose landmarks on a frame."""
     h, w = frame.shape[:2]
     
-    # Background fill: Transparent if RGBA, black if BGR
+    # Background fill: Semi-transparent dark for visibility
     if frame.shape[2] == 4:
-        frame[:] = (0, 0, 0, 0)
+        frame[:] = (0, 0, 0, 64)  # Semi-transparent black
     else:
         frame[:] = (0, 0, 0)
     
@@ -52,7 +52,13 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
     
     if face_landmarks:
         face_pts = [(int(lm.x * w), int(lm.y * h)) for lm in face_landmarks]
-        
+
+        if detail_face and len(face_pts) > 0:
+            # DEBUG: Check coordinate ranges
+            xs = [pt[0] for pt in face_pts]
+            ys = [pt[1] for pt in face_pts]
+            print(f"DEBUG: Face points x range: {min(xs)}-{max(xs)}, y range: {min(ys)}-{max(ys)} (frame: {w}x{h})", flush=True)
+
         if detail_face:
             # Draw detailed mesh connections for Face Landmarker
             color_line = (0, 255, 0, 255) if is_rgba else (0, 255, 0)
@@ -61,10 +67,10 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
             for connections in [FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_RIGHT_EYE, FACEMESH_LEFT_IRIS, FACEMESH_RIGHT_IRIS]:
                 for i, j in connections:
                     if i < len(face_pts) and j < len(face_pts):
-                        cv2.line(frame, face_pts[i], face_pts[j], color_line, 1)
+                        cv2.line(frame, face_pts[i], face_pts[j], color_line, 2)
                         connections_count += 1
             for pt in face_pts:
-                cv2.circle(frame, pt, 2, color_point, -1)
+                cv2.circle(frame, pt, 4, color_point, -1)
             print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points on {w}x{h} frame.", flush=True)
         else:
             # Draw simplified outline for Holistic
