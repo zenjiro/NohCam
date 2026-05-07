@@ -67,8 +67,8 @@ class OverlayRenderer:
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
         glBindTexture(GL_TEXTURE_2D, 0)
     
-    def render(self):
-        """Render the overlay texture as a 2D quad in the top-left corner."""
+    def render(self, x=0, y=0):
+        """Render the overlay texture as a 2D quad at position (x, y)."""
         if self.texture_id is None:
             return
         
@@ -90,13 +90,13 @@ class OverlayRenderer:
         glBegin(GL_QUADS)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glTexCoord2f(0, 0)
-        glVertex2f(0, 0)
+        glVertex2f(x, y)
         glTexCoord2f(1, 0)
-        glVertex2f(OVERLAY_WIDTH, 0)
+        glVertex2f(x + OVERLAY_WIDTH, y)
         glTexCoord2f(1, 1)
-        glVertex2f(OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        glVertex2f(x + OVERLAY_WIDTH, y + OVERLAY_HEIGHT)
         glTexCoord2f(0, 1)
-        glVertex2f(0, OVERLAY_HEIGHT)
+        glVertex2f(x, y + OVERLAY_HEIGHT)
         glEnd()
         
         glDisable(GL_TEXTURE_2D)
@@ -482,8 +482,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         clock.tick(30)
 
     tracker.stop()
-    if overlay_renderer:
-        overlay_renderer.cleanup()
+    if pose_overlay_renderer:
+        pose_overlay_renderer.cleanup()
+    if face_overlay_renderer:
+        face_overlay_renderer.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
     live2d.glRelease()
