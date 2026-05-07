@@ -34,9 +34,11 @@ class ParameterDisplayRenderer:
         param_ids = model_obj.GetParamIds()
         
         # Parameters to display with their typical ranges
+        # Note: Live2D library clips values to the actual parameter range internally
+        # These ranges are estimated from typical Cubism models
         display_params = {
             "PARAM_ANGLE_X": (-30, 30),
-            "PARAM_ANGLE_Y": (-45, 45),
+            "PARAM_ANGLE_Y": (-30, 30),    # 実測: -30 to 30 (クリッピング)
             "PARAM_ANGLE_Z": (-30, 30),
             "PARAM_BODY_X": (-15, 15),
             "PARAM_BODY_Y": (-10, 10),
