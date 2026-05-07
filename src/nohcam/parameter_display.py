@@ -63,8 +63,6 @@ class ParameterDisplayRenderer:
         # Keep track of which indices we've already matched to avoid duplicates
         matched_indices = set()
 
-        print(f"[ParamDisplay] Available parameters ({len(param_ids)}): {param_ids}", flush=True)
-
         for config_kw, _ in match_configs:
             for i, param_id in enumerate(param_ids):
                 if i in matched_indices:
@@ -72,7 +70,6 @@ class ParameterDisplayRenderer:
 
                 p_norm = param_id.upper().replace("_", "")
                 if config_kw in p_norm:
-                    print(f"DEBUG: Matched '{config_kw}' with '{param_id}' (index {i})", flush=True)
                     # Exclusion for arms
                     if config_kw == "ARML" and "LB" in p_norm: continue
                     if config_kw == "ARMR" and "RB" in p_norm: continue
@@ -85,13 +82,6 @@ class ParameterDisplayRenderer:
                     }
                     self.param_values[i] = float(param_obj.value)
                     matched_indices.add(i)
-
-                    print(f"[ParamDisplay] Matched {config_kw} -> {param_id} (index {i})", flush=True)
-                    # For some categories like AngleX, we might only want the first match
-                    # but for others we might want more. Let's keep all for now.
-                    # break # Uncomment if we only want one match per config_kw
-
-        print(f"[ParamDisplay] Total matched parameters: {len(self.param_info)}", flush=True)
 
 
     def update_parameter_values(self, model_obj) -> None:
@@ -217,16 +207,17 @@ class ParameterDisplayRenderer:
     def update_texture(self, pil_image: Image.Image) -> None:
         """Update OpenGL texture with PIL image."""
         width, height = pil_image.size
-        
+
         if self.texture_id is None:
             self.texture_id = self.create_texture(width, height)
-        
+
         # Convert PIL image to numpy array (RGBA)
         img_array = np.array(pil_image, dtype=np.uint8)
-        
+
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, img_array)
         glBindTexture(GL_TEXTURE_2D, 0)
+        glFlush()
 
     def render(self, screen_width: int, screen_height: int) -> None:
         """Render the parameter display as a 2D overlay in top-right corner."""

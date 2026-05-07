@@ -509,15 +509,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         # Render parameter display
         if param_display_renderer:
             param_display_renderer.update_parameter_values(model)
-            
-            # Get current frame from tracker for background brightness detection
-            current_frame = None
-            if tracker.cap and tracker.cap.isOpened():
-                ret, img = tracker.cap.read()
-                if ret:
-                    current_frame = img
-            
-            text_color = param_display_renderer.detect_background_brightness(current_frame)
+            text_color = (255, 255, 255, 255)
             param_image = param_display_renderer.render_to_image(text_color)
             param_display_renderer.update_texture(param_image)
             param_display_renderer.render(WIDTH, HEIGHT)
