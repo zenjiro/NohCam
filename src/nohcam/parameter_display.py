@@ -32,11 +32,11 @@ class ParameterDisplayRenderer:
 
     def set_parameters(self, model_obj, model_path: Optional[str] = None) -> None:
         """Extract parameter information from Live2D model.
-        
+
         Gets parameter ranges directly from the model objects.
         """
         param_ids = model_obj.GetParamIds()
-        
+
         # Priority mapping of keywords to match (case-insensitive, underscores ignored)
         # Higher priority items should come first
         match_configs = [
@@ -56,24 +56,27 @@ class ParameterDisplayRenderer:
             ("MOUTHOPENY", "MouthOpenY"),
             ("MOUTHFORM", "MouthForm"),
         ]
-        
+
         self.param_info = {}
         self.param_values = {}
-        
+
         # Keep track of which indices we've already matched to avoid duplicates
         matched_indices = set()
+
+        print(f"[ParamDisplay] Available parameters ({len(param_ids)}): {param_ids}", flush=True)
 
         for config_kw, _ in match_configs:
             for i, param_id in enumerate(param_ids):
                 if i in matched_indices:
                     continue
-                    
+
                 p_norm = param_id.upper().replace("_", "")
                 if config_kw in p_norm:
+                    print(f"DEBUG: Matched '{config_kw}' with '{param_id}' (index {i})", flush=True)
                     # Exclusion for arms
                     if config_kw == "ARML" and "LB" in p_norm: continue
                     if config_kw == "ARMR" and "RB" in p_norm: continue
-                    
+
                     param_obj = model_obj.GetParameter(i)
                     self.param_info[i] = {
                         "name": param_id,
@@ -82,9 +85,13 @@ class ParameterDisplayRenderer:
                     }
                     self.param_values[i] = float(param_obj.value)
                     matched_indices.add(i)
+
+                    print(f"[ParamDisplay] Matched {config_kw} -> {param_id} (index {i})", flush=True)
                     # For some categories like AngleX, we might only want the first match
                     # but for others we might want more. Let's keep all for now.
                     # break # Uncomment if we only want one match per config_kw
+
+        print(f"[ParamDisplay] Total matched parameters: {len(self.param_info)}", flush=True)
 
 
     def update_parameter_values(self, model_obj) -> None:
