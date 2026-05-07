@@ -55,7 +55,7 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
         
         if detail_face:
             # Draw detailed mesh connections for Face Landmarker
-            color_line = (255, 255, 255, 255) if is_rgba else (255, 255, 255)
+            color_line = (0, 255, 0, 255) if is_rgba else (0, 255, 0)
             color_point = (0, 255, 255, 255) if is_rgba else (0, 255, 255)
             connections_count = 0
             for connections in [FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_RIGHT_EYE, FACEMESH_LEFT_IRIS, FACEMESH_RIGHT_IRIS]:
