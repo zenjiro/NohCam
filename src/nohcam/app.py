@@ -68,6 +68,7 @@ class OverlayRenderer:
         glBindTexture(GL_TEXTURE_2D, self.texture_id)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image)
         glBindTexture(GL_TEXTURE_2D, 0)
+        glFlush()  # Ensure the texture update is processed
     
     def render(self):
         """Render the overlay texture as a 2D quad at the specified position."""
@@ -488,10 +489,16 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             
             # 2. Face Overlay (Bottom-left) - Fallback to holistic face if face_mesh is missing
             mesh_to_draw = tracking_result.face_mesh
+            if frame % 30 == 0:
+                print(f"DEBUG app.py: face_mesh={type(tracking_result.face_mesh)}, len(face)={len(tracking_result.face)}", flush=True)
             if not mesh_to_draw and len(tracking_result.face) >= 468: # 468 is base mesh, 478 includes iris
                 mesh_to_draw = tracking_result.face
-                
+                if frame % 30 == 0:
+                    print(f"DEBUG app.py: Using fallback face as mesh_to_draw", flush=True)
+
             if face_overlay and mesh_to_draw:
+                if frame % 30 == 0:
+                    print(f"DEBUG app.py: Drawing face overlay with {len(mesh_to_draw)} landmarks", flush=True)
                 f_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
                 draw_landmarks(
                     f_frame,

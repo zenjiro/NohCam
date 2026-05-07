@@ -195,6 +195,10 @@ class Tracker:
         if face_result.face_landmarks:
             # face_result.face_landmarks is a list of lists (for each face)
             # We take the first face detected
+            if self.frame_count % 30 == 0:
+                print(f"DEBUG: face_result.face_landmarks length = {len(face_result.face_landmarks)}", flush=True)
+                if face_result.face_landmarks:
+                    print(f"DEBUG: First face has {len(face_result.face_landmarks[0])} landmarks", flush=True)
             for lm in face_result.face_landmarks[0]:
                 face_mesh.append(FaceLandmarkData(x=lm.x, y=lm.y, z=lm.z))
         
