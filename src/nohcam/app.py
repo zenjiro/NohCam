@@ -17,6 +17,7 @@ import live2d.v3 as live2d
 from .tracker import Tracker
 from live2d.v3.params import StandardParams
 from .landmark_drawer import draw_landmarks
+from .parameter_display import ParameterDisplayRenderer
 
 
 WIDTH, HEIGHT = 1280, 720
@@ -275,6 +276,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     overlay_renderer = OverlayRenderer()
     print("Landmark overlay enabled", flush=True)
 
+    param_display_renderer = ParameterDisplayRenderer(width=WIDTH, height=HEIGHT)
+    param_display_renderer.set_parameters(model)
+    print("Parameter display enabled", flush=True)
+
     clock = pygame.time.Clock()
     running = True
     frame = 0
@@ -410,6 +415,22 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             overlay_renderer.update_texture(overlay_frame)
             overlay_renderer.render()
 
+        # Render parameter display
+        if param_display_renderer:
+            param_display_renderer.update_parameter_values(model)
+            
+            # Get current frame from tracker for background brightness detection
+            current_frame = None
+            if tracker.cap and tracker.cap.isOpened():
+                ret, frame = tracker.cap.read()
+                if ret:
+                    current_frame = frame
+            
+            text_color = param_display_renderer.detect_background_brightness(current_frame)
+            param_image = param_display_renderer.render_to_image(text_color)
+            param_display_renderer.update_texture(param_image)
+            param_display_renderer.render(WIDTH, HEIGHT)
+
         ax = model.GetParameter(0).value if param_angle_x is not None else 0
         ay = model.GetParameter(1).value if param_angle_y is not None else 0
         pygame.display.set_caption(f"AngleX={ax:.1f} AngleY={ay:.1f}  (T=toggle auto, ESC=quit)")
@@ -420,6 +441,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     tracker.stop()
     if overlay_renderer:
         overlay_renderer.cleanup()
+    if param_display_renderer:
+        param_display_renderer.cleanup()
     live2d.glRelease()
     live2d.dispose()
     pygame.quit()
