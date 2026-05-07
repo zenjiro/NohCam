@@ -139,13 +139,25 @@ class ParameterDisplayRenderer:
         draw = ImageDraw.Draw(img)
         
         # Try to load a monospace font, fall back to default
-        try:
-            font = ImageFont.truetype("consolas.ttf", self.font_size)
-        except OSError:
+        # Common Windows monospace fonts
+        font_paths = [
+            "C:/Windows/Fonts/consola.ttf", # Consolas
+            "C:/Windows/Fonts/cour.ttf",    # Courier New
+            "C:/Windows/Fonts/lucon.ttf",   # Lucida Console
+            "consolas.ttf",
+            "courier.ttf"
+        ]
+        
+        font = None
+        for path in font_paths:
             try:
-                font = ImageFont.truetype("courier.ttf", self.font_size)
+                font = ImageFont.truetype(path, self.font_size)
+                break
             except OSError:
-                font = ImageFont.load_default()
+                continue
+        
+        if font is None:
+            font = ImageFont.load_default()
         
         y_offset = 5
         
