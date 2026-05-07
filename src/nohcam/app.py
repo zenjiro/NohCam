@@ -384,10 +384,10 @@ def main(model_path: str = None, camera_id: int = 0):
 
         model.Draw()
 
-        # Draw landmark overlay in top-left quarter
-        if auto_track and tracking_result and tracker.current_frame is not None:
-            overlay_frame = tracker.current_frame.copy()
-            overlay_frame = cv2.resize(overlay_frame, (overlay_width, overlay_height))
+        # Draw landmark overlay in top-left quarter (no camera background)
+        if auto_track and tracking_result:
+            # Create blank frame for landmarks only (no camera background)
+            overlay_frame = np.zeros((overlay_height, overlay_width, 3), dtype=np.uint8)
             overlay_frame = draw_landmarks_overlay(overlay_frame, tracking_result)
 
             # Convert to RGB for OpenGL
@@ -405,8 +405,8 @@ def main(model_path: str = None, camera_id: int = 0):
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, overlay_width, overlay_height, GL_RGB, GL_UNSIGNED_BYTE, overlay_rgb)
 
             # Draw overlay in top-left quarter (OpenGL coordinates: -1 to 1)
-            # Top-left quarter: x=-1 to -0.5, y=1 to 0.5
-            draw_texture(overlay_texture_id, -1, 1, 0.5, -0.5)
+            # Top-left quarter: width=1.0 (half), height=1.0 (half)
+            draw_texture(overlay_texture_id, -1, 1, 1.0, -1.0)
 
         ax = model.GetParameter(0).value if param_angle_x is not None else 0
         ay = model.GetParameter(1).value if param_angle_y is not None else 0
