@@ -86,6 +86,8 @@ class TrackingResult:
     face: list[FaceLandmarkData]
     hands: list[HandData]
     pose: list[PoseLandmarkData]
+    face_mesh: list[FaceLandmarkData] = None
+    blendshapes: Dict[str, float] = None
 
 
 CameraFps = 30
@@ -100,9 +102,11 @@ class Tracker:
         self.cap: Optional[cv2.VideoCapture] = None
 
         _DIR = os.path.dirname(os.path.abspath(__file__))
-        base_options = python.BaseOptions(
-            model_asset_path=os.path.join(_DIR, "..", "..", "models", "holistic_landmarker.task")
-        )
+        model_path = os.path.join(_DIR, "..", "..", "models", "holistic_landmarker.task")
+        face_model_path = os.path.join(_DIR, "..", "..", "models", "face_landmarker.task")
+
+        # Holistic Landmarker
+        base_options = python.BaseOptions(model_asset_path=model_path)
         options = vision.HolisticLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO,
@@ -114,6 +118,18 @@ class Tracker:
             min_pose_landmarks_confidence=0.3,
         )
         self.detector = vision.HolisticLandmarker.create_from_options(options)
+
+        # Face Landmarker for Blendshapes
+        face_base_options = python.BaseOptions(model_asset_path=face_model_path)
+        face_options = vision.FaceLandmarkerOptions(
+            base_options=face_base_options,
+            running_mode=vision.RunningMode.VIDEO,
+            output_face_blendshapes=True,
+            min_face_detection_confidence=0.3,
+            min_face_presence_confidence=0.3,
+            min_tracking_confidence=0.3,
+        )
+        self.face_detector = vision.FaceLandmarker.create_from_options(face_options)
 
         self.frame_count = 0
         self.start_time = 0
@@ -144,7 +160,11 @@ class Tracker:
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
+        # Run Holistic
         result = self.detector.detect_for_video(mp_image, timestamp_ms)
+        
+        # Run Face Landmarker
+        face_result = self.face_detector.detect_for_video(mp_image, timestamp_ms)
 
         face_landmarks = []
         if result.face_landmarks:
@@ -169,12 +189,26 @@ class Tracker:
             for lm in result.pose_landmarks:
                 pose_landmarks.append(PoseLandmarkData(x=lm.x, y=lm.y, z=lm.z))
 
+        # Face Landmarker details
+        face_mesh = []
+        blendshapes = {}
+        if face_result.face_landmarks:
+            # We take the first face detected
+            for lm in face_result.face_landmarks[0]:
+                face_mesh.append(FaceLandmarkData(x=lm.x, y=lm.y, z=lm.z))
+        
+        if face_result.face_blendshapes:
+            for bs in face_result.face_blendshapes[0]:
+                blendshapes[bs.category_name] = bs.score
+
         return TrackingResult(
             frame=self.frame_count,
             timestamp_ms=timestamp_ms,
             face=face_landmarks,
             hands=hands_data,
-            pose=pose_landmarks
+            pose=pose_landmarks,
+            face_mesh=face_mesh if face_mesh else None,
+            blendshapes=blendshapes if blendshapes else None
         )
 
 

@@ -37,9 +37,11 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 class OverlayRenderer:
     """Manages overlay texture rendering for debug landmarks."""
     
-    def __init__(self):
+    def __init__(self, x=0, y=0):
         self.texture_id = None
         self.texture_data = None
+        self.x = x
+        self.y = y
     
     def create_texture(self):
         """Create an OpenGL texture for the overlay."""
@@ -68,7 +70,7 @@ class OverlayRenderer:
         glBindTexture(GL_TEXTURE_2D, 0)
     
     def render(self):
-        """Render the overlay texture as a 2D quad in the top-left corner."""
+        """Render the overlay texture as a 2D quad at the specified position."""
         if self.texture_id is None:
             return
         
@@ -90,13 +92,13 @@ class OverlayRenderer:
         glBegin(GL_QUADS)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glTexCoord2f(0, 0)
-        glVertex2f(0, 0)
+        glVertex2f(self.x, self.y)
         glTexCoord2f(1, 0)
-        glVertex2f(OVERLAY_WIDTH, 0)
+        glVertex2f(self.x + OVERLAY_WIDTH, self.y)
         glTexCoord2f(1, 1)
-        glVertex2f(OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        glVertex2f(self.x + OVERLAY_WIDTH, self.y + OVERLAY_HEIGHT)
         glTexCoord2f(0, 1)
-        glVertex2f(0, OVERLAY_HEIGHT)
+        glVertex2f(self.x, self.y + OVERLAY_HEIGHT)
         glEnd()
         
         glDisable(GL_TEXTURE_2D)
@@ -276,8 +278,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     body_y_value = 0.0
     body_z_value = 0.0
     
-    overlay_renderer = OverlayRenderer()
-    print("Landmark overlay enabled", flush=True)
+    # Dual overlays
+    holistic_overlay = OverlayRenderer(x=0, y=0) # Top-left
+    face_overlay = OverlayRenderer(x=0, y=HEIGHT // 2) # Bottom-left
+    print("Dual landmark overlays enabled", flush=True)
 
     param_display_renderer = ParameterDisplayRenderer(width=WIDTH, height=HEIGHT)
     param_display_renderer.set_parameters(model, model_path=model_path)
@@ -425,21 +429,54 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
         model.Draw()
         
-        # Render landmark overlay
-        if overlay_renderer and tracking_result:
-            overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
+        # Apply Blendshapes from Face Landmarker
+        if auto_track and tracking_result and tracking_result.blendshapes:
+            bs = tracking_result.blendshapes
             
-            # Draw landmarks on overlay frame (with alpha channel)
-            draw_landmarks(
-                overlay_frame,
-                tracking_result.face if tracking_result.face else None,
-                tracking_result.hands[0].landmarks if tracking_result.hands and len(tracking_result.hands) > 0 else None,
-                tracking_result.hands[1].landmarks if tracking_result.hands and len(tracking_result.hands) > 1 else None,
-                tracking_result.pose if tracking_result.pose else None,
-            )
+            # Blink (MediaPipe: 0=open, 1=closed -> Live2D: 1=open, 0=closed)
+            eye_l_open = 1.0 - bs.get("eyeBlinkLeft", 0.0)
+            eye_r_open = 1.0 - bs.get("eyeBlinkRight", 0.0)
             
-            overlay_renderer.update_texture(overlay_frame)
-            overlay_renderer.render()
+            # Mouth Open (MediaPipe: 0=closed, 1=open -> Live2D: 0=closed, 1=open)
+            mouth_open = bs.get("jawOpen", 0.0)
+            
+            # Mouth Form (MediaPipe Smile -> Live2D Form: -1.0 to 1.0, 0 is neutral)
+            smile_l = bs.get("mouthSmileLeft", 0.0)
+            smile_r = bs.get("mouthSmileRight", 0.0)
+            mouth_form = (smile_l + smile_r) / 2.0  # 0 to 1
+            # Map 0..1 to -1..1 or similar. Let's use 0..1 as "smiling"
+            
+            # Apply to model
+            model.SetParameterValue("ParamEyeLOpen", eye_l_open, 1.0)
+            model.SetParameterValue("ParamEyeROpen", eye_r_open, 1.0)
+            model.SetParameterValue("ParamMouthOpenY", mouth_open, 1.0)
+            model.SetParameterValue("ParamMouthForm", mouth_form, 1.0)
+
+        # Render landmark overlays
+        if tracking_result:
+            # 1. Holistic Overlay (Top-left)
+            if holistic_overlay:
+                h_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
+                draw_landmarks(
+                    h_frame,
+                    tracking_result.face,
+                    tracking_result.hands[0].landmarks if len(tracking_result.hands) > 0 else None,
+                    tracking_result.hands[1].landmarks if len(tracking_result.hands) > 1 else None,
+                    tracking_result.pose,
+                )
+                holistic_overlay.update_texture(h_frame)
+                holistic_overlay.render()
+            
+            # 2. Face Overlay (Bottom-left)
+            if face_overlay and tracking_result.face_mesh:
+                f_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
+                draw_landmarks(
+                    f_frame,
+                    tracking_result.face_mesh,
+                    None, None, None
+                )
+                face_overlay.update_texture(f_frame)
+                face_overlay.render()
 
         # Render parameter display
         if param_display_renderer:
@@ -448,9 +485,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             # Get current frame from tracker for background brightness detection
             current_frame = None
             if tracker.cap and tracker.cap.isOpened():
-                ret, frame = tracker.cap.read()
+                ret, img = tracker.cap.read()
                 if ret:
-                    current_frame = frame
+                    current_frame = img
             
             text_color = param_display_renderer.detect_background_brightness(current_frame)
             param_image = param_display_renderer.render_to_image(text_color)
@@ -465,8 +502,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         clock.tick(30)
 
     tracker.stop()
-    if overlay_renderer:
-        overlay_renderer.cleanup()
+    if holistic_overlay:
+        holistic_overlay.cleanup()
+    if face_overlay:
+        face_overlay.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
     live2d.glRelease()
