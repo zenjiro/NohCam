@@ -70,9 +70,6 @@ def draw_landmarks(frame, face_landmarks, left_hand_landmarks, right_hand_landma
                     if i < len(face_pts) and j < len(face_pts):
                         cv2.line(frame, face_pts[i], face_pts[j], color_line, 2)
                         connections_count += 1
-
-            print(f"DEBUG: Draw landmarks (detail) drew {connections_count} lines and {len(face_pts)} points.", flush=True)
-
         else:
             # Draw simplified outline for Holistic
             for i in range(len(face_pts) - 1):
