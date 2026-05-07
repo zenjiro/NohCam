@@ -37,38 +37,51 @@ class ParameterDisplayRenderer:
         """
         param_ids = model_obj.GetParamIds()
         
-        # Parameters to display
-        # Supports both PARAM_ANGLE_* and PARAM_BODY_ANGLE_* naming conventions
-        display_params = [
-            "ANGLE_X",
-            "ANGLE_Y",
-            "ANGLE_Z",
-            "BODY_ANGLE_X",
-            "BODY_ANGLE_Y",
-            "BODY_ANGLE_Z",
-            "PARAM_BODY_X",
-            "PARAM_BODY_Y",
-            "PARAM_BODY_Z",
-            "PARAM_ARM_L",
-            "PARAM_ARM_R",
+        # Priority mapping of keywords to match (case-insensitive, underscores ignored)
+        # Higher priority items should come first
+        match_configs = [
+            ("BODYANGLEX", "BodyAngleX"),
+            ("BODYANGLEY", "BodyAngleY"),
+            ("BODYANGLEZ", "BodyAngleZ"),
+            ("ANGLEX", "AngleX"),
+            ("ANGLEY", "AngleY"),
+            ("ANGLEZ", "AngleZ"),
+            ("BODYX", "BodyX"),
+            ("BODYY", "BodyY"),
+            ("BODYZ", "BodyZ"),
+            ("ARML", "ArmL"),
+            ("ARMR", "ArmR"),
         ]
         
         self.param_info = {}
         self.param_values = {}
         
-        for i, param_id in enumerate(param_ids):
-            param_name_upper = param_id.upper()
-            for display_param in display_params:
-                if display_param in param_name_upper:
-                    param_obj = model_obj.GetParameter(i)
+        # Keep track of which indices we've already matched to avoid duplicates
+        matched_indices = set()
+
+        for config_kw, _ in match_configs:
+            for i, param_id in enumerate(param_ids):
+                if i in matched_indices:
+                    continue
                     
+                p_norm = param_id.upper().replace("_", "")
+                if config_kw in p_norm:
+                    # Exclusion for arms
+                    if config_kw == "ARML" and "LB" in p_norm: continue
+                    if config_kw == "ARMR" and "RB" in p_norm: continue
+                    
+                    param_obj = model_obj.GetParameter(i)
                     self.param_info[i] = {
                         "name": param_id,
                         "min": float(param_obj.min),
                         "max": float(param_obj.max),
                     }
                     self.param_values[i] = float(param_obj.value)
-                    break
+                    matched_indices.add(i)
+                    # For some categories like AngleX, we might only want the first match
+                    # but for others we might want more. Let's keep all for now.
+                    # break # Uncomment if we only want one match per config_kw
+
 
     def update_parameter_values(self, model_obj) -> None:
         """Update current parameter values from model."""

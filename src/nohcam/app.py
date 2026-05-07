@@ -239,11 +239,11 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
     for i, p in enumerate(param_ids):
         p_norm = p.upper().replace("_", "")
-        if "BODYANGLEX" in p_norm and param_body_x is None:
+        if ("BODYANGLEX" in p_norm or "BODYX" in p_norm) and param_body_x is None:
             param_body_x = i
-        elif "BODYANGLEY" in p_norm and param_body_y is None:
+        elif ("BODYANGLEY" in p_norm or "BODYY" in p_norm) and param_body_y is None:
             param_body_y = i
-        elif "BODYANGLEZ" in p_norm and param_body_z is None:
+        elif ("BODYANGLEZ" in p_norm or "BODYZ" in p_norm) and param_body_z is None:
             param_body_z = i
         elif "ANGLEX" in p_norm and param_angle_x is None:
             param_angle_x = i
