@@ -9,7 +9,7 @@ from typing import Optional, Dict, List
 class ParameterDisplayRenderer:
     """Renders Live2D parameter values with bar graphs in the top-right corner."""
 
-    def __init__(self, width: int = 1280, height: int = 720, margin: int = 100):
+    def __init__(self, width: int = 1280, height: int = 720, margin: int = 15):
         self.width = width
         self.height = height
         self.margin = margin
@@ -22,9 +22,9 @@ class ParameterDisplayRenderer:
         
         # Display settings
         self.font_size = 12
-        self.bar_length = 20
+        self.bar_length = 15
         self.line_height = 18
-        self.panel_width = 500
+        self.panel_width = 520
         self.bg_color = (0, 0, 0, 0)  # Transparent
         
         # Cache for brightness detection
