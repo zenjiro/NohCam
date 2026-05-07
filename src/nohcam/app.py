@@ -334,6 +334,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         keys = pygame.key.get_pressed()
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
+        # Initialize background_frame for parameter display
+        background_frame = None
+
         # カメラから tracking 結果を取得
         tracking_result = None
         if auto_track:
@@ -475,6 +478,18 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
         model.Draw()
 
+        # Sample background color from OpenGL buffer for parameter display text color
+        try:
+            # Read a small region from the OpenGL framebuffer to detect background brightness
+            # Sample from top-right corner (opposite of parameter display)
+            sample_x, sample_y = WIDTH - 100, 50
+            sample_w, sample_h = 80, 80
+            pixel_data = glReadPixels(sample_x, sample_y, sample_w, sample_h, GL_RGBA, GL_UNSIGNED_BYTE)
+            if pixel_data is not None:
+                background_frame = np.frombuffer(pixel_data, dtype=np.uint8).reshape((sample_h, sample_w, 4))
+        except Exception:
+            pass
+
         # Render landmark overlays
         if tracking_result:
             # 1. Holistic Overlay (Top-left)
@@ -509,7 +524,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         # Render parameter display
         if param_display_renderer:
             param_display_renderer.update_parameter_values(model)
-            text_color = (255, 255, 255, 255)
+            text_color = param_display_renderer.detect_background_brightness(background_frame)
             param_image = param_display_renderer.render_to_image(text_color)
             param_display_renderer.update_texture(param_image)
             param_display_renderer.render(WIDTH, HEIGHT)
