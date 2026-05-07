@@ -178,7 +178,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = True):
+def main(model_path: str = None, camera_id: int = 0):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -271,10 +271,8 @@ def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = True)
     arm_l_value = 0.0
     arm_r_value = 0.0
     
-    overlay_renderer = None
-    if debug_overlay:
-        overlay_renderer = OverlayRenderer()
-        print("Debug overlay enabled", flush=True)
+    overlay_renderer = OverlayRenderer()
+    print("Landmark overlay enabled", flush=True)
 
     clock = pygame.time.Clock()
     running = True
@@ -395,8 +393,8 @@ def main(model_path: str = None, camera_id: int = 0, debug_overlay: bool = True)
 
         model.Draw()
         
-        # Render debug overlay if enabled
-        if debug_overlay and overlay_renderer and tracking_result:
+        # Render landmark overlay
+        if overlay_renderer and tracking_result:
             overlay_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
             
             # Draw landmarks on overlay frame (with alpha channel)
