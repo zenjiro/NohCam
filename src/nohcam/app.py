@@ -384,29 +384,37 @@ def main(model_path: str = None, camera_id: int = 0):
 
         model.Draw()
 
-        # Draw landmark overlay in top-left quarter (no camera background)
+        # Draw landmark overlay in top-left quarter (transparent background)
         if auto_track and tracking_result:
-            # Create blank frame for landmarks only (no camera background)
-            overlay_frame = np.zeros((overlay_height, overlay_width, 3), dtype=np.uint8)
-            overlay_frame = draw_landmarks_overlay(overlay_frame, tracking_result)
+            # Create a 3-channel black image for drawing landmarks
+            overlay_frame_3ch = np.zeros((overlay_height, overlay_width, 3), dtype=np.uint8)
+            overlay_frame_3ch = draw_landmarks_overlay(overlay_frame_3ch, tracking_result)
 
-            # Convert to RGB for OpenGL
-            overlay_rgb = cv2.cvtColor(overlay_frame, cv2.COLOR_BGR2RGB)
-            overlay_rgb = cv2.flip(overlay_rgb, 0)
+            # Convert to 4-channel (BGRA) and set black background to transparent
+            overlay_frame_bgra = cv2.cvtColor(overlay_frame_3ch, cv2.COLOR_BGR2BGRA)
+            # Set alpha to 0 for black background (where BGR = [0,0,0])
+            black_mask = np.all(overlay_frame_3ch == [0, 0, 0], axis=2)
+            overlay_frame_bgra[black_mask, 3] = 0
+
+            # Convert BGRA to RGBA for OpenGL
+            overlay_frame_rgba = cv2.cvtColor(overlay_frame_bgra, cv2.COLOR_BGRA2RGBA)
+            overlay_frame_rgba = cv2.flip(overlay_frame_rgba, 0)
 
             if overlay_texture_id is None:
                 overlay_texture_id = glGenTextures(1)
                 glBindTexture(GL_TEXTURE_2D, overlay_texture_id)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, overlay_width, overlay_height, 0, GL_RGB, GL_UNSIGNED_BYTE, overlay_rgb)
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, overlay_width, overlay_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay_frame_rgba)
             else:
                 glBindTexture(GL_TEXTURE_2D, overlay_texture_id)
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, overlay_width, overlay_height, GL_RGB, GL_UNSIGNED_BYTE, overlay_rgb)
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, overlay_width, overlay_height, GL_RGBA, GL_UNSIGNED_BYTE, overlay_frame_rgba)
 
-            # Draw overlay in top-left quarter (OpenGL coordinates: -1 to 1)
-            # Top-left quarter: width=1.0 (half), height=1.0 (half)
+            # Enable blending for transparent overlay
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             draw_texture(overlay_texture_id, -1, 1, 1.0, -1.0)
+            glDisable(GL_BLEND)
 
         ax = model.GetParameter(0).value if param_angle_x is not None else 0
         ay = model.GetParameter(1).value if param_angle_y is not None else 0
