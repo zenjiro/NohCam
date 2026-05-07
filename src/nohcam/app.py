@@ -529,9 +529,13 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             param_display_renderer.update_texture(param_image)
             param_display_renderer.render(WIDTH, HEIGHT)
 
-        ax = model.GetParameter(0).value if param_angle_x is not None else 0
-        ay = model.GetParameter(1).value if param_angle_y is not None else 0
-        pygame.display.set_caption(f"AngleX={ax:.1f} AngleY={ay:.1f}  (T=toggle auto, ESC=quit)")
+        if param_angle_x is not None and param_angle_y is not None:
+            try:
+                ax = model.GetParameterValue(param_angle_x)
+                ay = model.GetParameterValue(param_angle_y)
+                pygame.display.set_caption(f"AngleX={ax:.1f} AngleY={ay:.1f}  (T=toggle auto, ESC=quit)")
+            except:
+                pygame.display.set_caption("(T=toggle auto, ESC=quit)")
 
         pygame.display.flip()
         clock.tick(30)

@@ -87,8 +87,7 @@ class ParameterDisplayRenderer:
     def update_parameter_values(self, model_obj) -> None:
         """Update current parameter values from model."""
         for param_idx in self.param_info.keys():
-            param_obj = model_obj.GetParameter(param_idx)
-            self.param_values[param_idx] = param_obj.value
+            self.param_values[param_idx] = model_obj.GetParameterValue(param_idx)
 
     def detect_background_brightness(self, cv_image: np.ndarray) -> tuple:
         """Detect background brightness and return text color (R, G, B, A)."""
@@ -134,7 +133,7 @@ class ParameterDisplayRenderer:
         # Calculate panel height based on number of parameters
         num_params = len(self.param_info)
         panel_height = self.line_height * num_params + 10
-        
+
         # Create transparent image
         img = Image.new("RGBA", (self.panel_width, panel_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
