@@ -3,7 +3,7 @@
 このドキュメントは、新しい Live2D モデルを追加したときに
 次の 2 つの issue を更新するための手順をまとめたものです。
 
-- パラメーター優先順位一覧: [#8](https://github.com/zenjiro/NohCam/issues/8)
+- パラメーター一覧: [#8](https://github.com/zenjiro/NohCam/issues/8)
 - 表情プリセット一覧: [#9](https://github.com/zenjiro/NohCam/issues/9)
 
 ## 1. パラメーター一覧の調査
@@ -113,4 +113,3 @@ for i in range(count):
 - パラメーター優先順位は `#8`
 - 表情プリセットは `#9`
 - 迷ったら「実際に runtime で取れた情報」を優先する
-
