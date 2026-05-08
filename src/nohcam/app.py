@@ -597,11 +597,11 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             arm_l_value = arm_l_value + (target_arm_l - arm_l_value) * 0.25
             arm_r_value = arm_r_value + (target_arm_r - arm_r_value) * 0.25
 
-            # 顔のミラー表示に合わせて腕は左右を反転して適用する
+            # Apply arm parameters (L to L, R to R)
             if param_arm_l is not None:
-                model.SetIndexParamValue(param_arm_l, arm_r_value, 1.0)
+                model.SetIndexParamValue(param_arm_l, arm_l_value, 1.0)
             if param_arm_r is not None:
-                model.SetIndexParamValue(param_arm_r, arm_l_value, 1.0)
+                model.SetIndexParamValue(param_arm_r, arm_r_value, 1.0)
 
         # 体の傾きのジッタ低減
         body_x_value = body_x_value + (target_body_x - body_x_value) * 0.25
