@@ -78,18 +78,6 @@ class ParameterDisplayRenderer:
                     p_min = float(param_obj.min)
                     p_max = float(param_obj.max)
 
-                    # Fallback for standard parameters if metadata is missing/zero
-                    if p_min == p_max == 0:
-                        if "ANGLEX" in p_norm: p_min, p_max = -30, 30
-                        elif "ANGLEY" in p_norm: p_min, p_max = -30, 30
-                        elif "ANGLEZ" in p_norm: p_min, p_max = -30, 30
-                        elif "BODYANGLEX" in p_norm or "BODYX" in p_norm: p_min, p_max = -10, 10
-                        elif "BODYANGLEY" in p_norm or "BODYY" in p_norm: p_min, p_max = -10, 10
-                        elif "BODYANGLEZ" in p_norm or "BODYZ" in p_norm: p_min, p_max = -10, 10
-                        elif "MOUTHOPEN" in p_norm: p_min, p_max = 0, 1
-                        elif "EYE" in p_norm and "OPEN" in p_norm: p_min, p_max = 0, 1
-                        elif "MOUTHFORM" in p_norm: p_min, p_max = -1, 1
-
                     self.param_info[i] = {
                         "name": param_id,
                         "min": p_min,
