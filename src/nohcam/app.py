@@ -230,7 +230,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
     model.StopAllMotions()
     model.SetAutoBlinkEnable(False)
-    model.SetAutoBreathEnable(False)
+    model.SetAutoBreathEnable(True)
     model.ResetParameters()
     print("Model parameters reset", flush=True)
 
