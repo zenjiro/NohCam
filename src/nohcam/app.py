@@ -387,7 +387,13 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
     print("PyGame initialized", flush=True)
     pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
     print("Display mode set", flush=True)
-    pygame.display.set_caption("NohCam - Live2D Tracking")
+
+    title = "NohCam"
+    if model_path:
+        title += f" - {os.path.basename(model_path)}"
+    if background_path:
+        title += f" - {os.path.basename(background_path)}"
+    pygame.display.set_caption(title)
     spout_sender = SpoutFrameSender(SPOUT_SENDER_NAME, WIDTH, HEIGHT)
 
     live2d.init()
@@ -691,13 +697,6 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             param_display_renderer.update_texture(param_image)
             param_display_renderer.render(WIDTH, HEIGHT)
 
-        if param_angle_x is not None and param_angle_y is not None:
-            try:
-                ax = model.GetParameterValue(param_angle_x)
-                ay = model.GetParameterValue(param_angle_y)
-                pygame.display.set_caption(f"NohCam - AngleX={ax:.1f} AngleY={ay:.1f} (ESC=quit)")
-            except:
-                pygame.display.set_caption("NohCam - Live2D Tracking (ESC=quit)")
 
         spout_sender.send_current_frame()
         pygame.display.flip()
