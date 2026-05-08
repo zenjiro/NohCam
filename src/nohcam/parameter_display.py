@@ -75,10 +75,25 @@ class ParameterDisplayRenderer:
                     if config_kw == "ARMR" and "RB" in p_norm: continue
 
                     param_obj = model_obj.GetParameter(i)
+                    p_min = float(param_obj.min)
+                    p_max = float(param_obj.max)
+
+                    # Fallback for standard parameters if metadata is missing/zero
+                    if p_min == p_max == 0:
+                        if "ANGLEX" in p_norm: p_min, p_max = -30, 30
+                        elif "ANGLEY" in p_norm: p_min, p_max = -30, 30
+                        elif "ANGLEZ" in p_norm: p_min, p_max = -30, 30
+                        elif "BODYANGLEX" in p_norm or "BODYX" in p_norm: p_min, p_max = -10, 10
+                        elif "BODYANGLEY" in p_norm or "BODYY" in p_norm: p_min, p_max = -10, 10
+                        elif "BODYANGLEZ" in p_norm or "BODYZ" in p_norm: p_min, p_max = -10, 10
+                        elif "MOUTHOPEN" in p_norm: p_min, p_max = 0, 1
+                        elif "EYE" in p_norm and "OPEN" in p_norm: p_min, p_max = 0, 1
+                        elif "MOUTHFORM" in p_norm: p_min, p_max = -1, 1
+
                     self.param_info[i] = {
                         "name": param_id,
-                        "min": float(param_obj.min),
-                        "max": float(param_obj.max),
+                        "min": p_min,
+                        "max": p_max,
                     }
                     self.param_values[i] = float(param_obj.value)
                     matched_indices.add(i)
@@ -87,7 +102,14 @@ class ParameterDisplayRenderer:
     def update_parameter_values(self, model_obj) -> None:
         """Update current parameter values from model."""
         for param_idx in self.param_info.keys():
-            self.param_values[param_idx] = model_obj.GetParameterValue(param_idx)
+            val = model_obj.GetParameterValue(param_idx)
+            self.param_values[param_idx] = val
+            
+            # Dynamically update range if we see values outside it
+            if val < self.param_info[param_idx]["min"]:
+                self.param_info[param_idx]["min"] = val
+            if val > self.param_info[param_idx]["max"]:
+                self.param_info[param_idx]["max"] = val
 
     def detect_background_brightness(self, cv_image: np.ndarray) -> tuple:
         """Detect background brightness and return text color (R, G, B, A)."""
