@@ -12,6 +12,7 @@ from pygame.locals import *
 import questionary
 
 from OpenGL.GL import *
+from SpoutGL import SpoutSender
 
 import live2d.v3 as live2d
 from .tracker import Tracker
@@ -211,6 +212,11 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
     print("Display mode set", flush=True)
     pygame.display.set_caption("Live2D Tracking - Arrow keys manual, T auto-track")
+
+    # Initialize Spout sender to share frames with SpoutCam virtual camera
+    spout_sender = SpoutSender()
+    spout_sender.CreateSender("NohCam", WIDTH, HEIGHT)
+    print("Spout sender initialized", flush=True)
 
     live2d.init()
     print("Live2D initialized", flush=True)
@@ -540,6 +546,18 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             except:
                 pygame.display.set_caption("(T=toggle auto, ESC=quit)")
 
+        # Send frame to SpoutCam virtual camera via Spout2
+        # glReadPixels reads after all rendering is complete (before display flip)
+        try:
+            raw = glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGB, GL_UNSIGNED_BYTE)
+            if raw:
+                # OpenGL coordinate origin is bottom-left; flip vertically to top-left origin
+                frame_np = np.frombuffer(raw, dtype=np.uint8).reshape(HEIGHT, WIDTH, 3)
+                frame_np = np.ascontiguousarray(np.flipud(frame_np))
+                spout_sender.SendImage(frame_np, WIDTH, HEIGHT, GL_RGB, False)
+        except Exception:
+            pass  # Never crash the render loop due to Spout errors
+
         pygame.display.flip()
         clock.tick(30)
 
@@ -550,6 +568,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         face_overlay.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
+    spout_sender.ReleaseSender()
     live2d.glRelease()
     live2d.dispose()
     pygame.quit()
