@@ -1,13 +1,15 @@
-# nohcam-tracker
+# NohCam
 
-MediaPipe Face/Hands/Pose tracker with webcam input.
+Live2D viewer driven by MediaPipe face, hand, and pose tracking from webcam input.
 
 ## Features
 
-- Webcam input: 1920x1080 @ 30fps
-- Detection: MediaPipe Holistic (Hands 21x2 + Pose 33 landmarks)
-- Process resolution: 640x480 (for performance)
-- Output: JSONL to stdout
+- Interactive Live2D model selection (`*.model3.json`) from the current directory tree
+- Live2D parameter driving from MediaPipe landmarks (face, hands, pose)
+- Facial blendshape mapping (blink, mouth open, smile)
+- Landmark debug GUI (`--debug-landmarks`)
+- Camera discovery and selection (`--list-cameras`, `--camera`)
+- Processing resolution: 640x480 for tracking performance
 
 ## Requirements
 
@@ -17,15 +19,14 @@ MediaPipe Face/Hands/Pose tracker with webcam input.
 ## Setup
 
 ```powershell
-cd nohcam-tracker
 uv sync
 ```
 
-This will install dependencies and download the model automatically.
+This installs dependencies. Ensure model assets are available in `models/` and your Live2D model files are accessible from your working directory.
 
 ## Usage
 
-### 1. Interactive Model Selection (Default)
+### 1. Launch Viewer with Interactive Model Selection (Default)
 Run without options to search for Live2D models (`*.model3.json`) in the current directory and subdirectories. Use arrow keys to select a model.
 
 ```powershell
@@ -63,5 +64,6 @@ If no camera is specified, the application attempts to automatically select the 
 
 ## Notes
 
-- Face mesh is not included by default with HolisticTasks API
-- Performance: ~8-15 FPS on Windows without GPU
+- There is currently no standalone JSONL tracker mode wired to the CLI entrypoint.
+- Face mesh detail is provided through Face Landmarker and used for expression/blendshape extraction.
+- Performance depends on hardware; tracking runs on resized frames (640x480).
