@@ -22,9 +22,9 @@ class ParameterDisplayRenderer:
         
         # Display settings
         self.font_size = 27
-        self.bar_length = 15
+        self.bar_length = 8
         self.line_height = 40
-        self.panel_width = 920
+        self.panel_width = 800
         self.bg_color = (0, 0, 0, 0)  # Transparent
         
         # Cache for brightness detection
