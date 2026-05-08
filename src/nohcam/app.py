@@ -461,10 +461,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             # Mouth Open (MediaPipe: 0=closed, 1=open -> Live2D: 0=closed, 1=open)
             mouth_open = bs.get("jawOpen", 0.0)
             
-            # Mouth Form (MediaPipe Smile -> Live2D Form: -1.0 to 1.0, 0 is neutral)
-            smile_l = bs.get("mouthSmileLeft", 0.0)
-            smile_r = bs.get("mouthSmileRight", 0.0)
-            mouth_form = (smile_l + smile_r) / 2.0  # 0 to 1
+            # Mouth Form (MediaPipe Smile/Frown -> Live2D Form: -1.0 to 1.0, 0 is neutral)
+            smile = (bs.get("mouthSmileLeft", 0.0) + bs.get("mouthSmileRight", 0.0)) / 2.0
+            frown = (bs.get("mouthFrownLeft", 0.0) + bs.get("mouthFrownRight", 0.0)) / 2.0
+            mouth_form = smile - frown
             
             # Apply to model using Index for reliability
             if param_eye_l_open is not None:
@@ -473,6 +473,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 model.SetIndexParamValue(param_eye_r_open, eye_r_open, 1.0)
             if param_mouth_open_y is not None:
                 model.SetIndexParamValue(param_mouth_open_y, mouth_open, 1.0)
+                # Debug mouth open
+                # if mouth_open > 0.5:
+                #    print(f"Mouth Open: set={mouth_open:.3f}, actual={model.GetParameterValue(param_mouth_open_y):.3f}", flush=True)
             if param_mouth_form is not None:
                 model.SetIndexParamValue(param_mouth_form, mouth_form, 1.0)
 
