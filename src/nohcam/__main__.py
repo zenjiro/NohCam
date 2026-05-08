@@ -82,7 +82,7 @@ def main():
     parser.add_argument("--list-models", action="store_true", help="List available models (*.model3.json) in current directory and exit")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
     parser.add_argument("--camera", type=int, help="Camera index to use")
-    parser.add_argument("--background", help="Path to background image")
+    parser.add_argument("--background", metavar="IMAGE", help="Path to background image")
     args = parser.parse_args()
 
     from .tracker import get_camera_list, find_default_camera_id
