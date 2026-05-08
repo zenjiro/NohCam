@@ -454,10 +454,6 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             # ロール: 目の高さ差 (右傾き＝負、左傾き＝正)
             angle_z = (eye_r.y - eye_l.y) * 800
 
-            target_body_x += angle_x * 0.3
-            target_body_y += angle_y * 0.3
-            target_body_z += angle_z * 0.3
-
             if param_angle_x is not None:
                 model.SetIndexParamValue(param_angle_x, angle_x, 1.0)
             if param_angle_y is not None:
