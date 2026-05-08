@@ -375,7 +375,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     
     # Dual overlays
     holistic_overlay = OverlayRenderer(x=0, y=0) # Top-left
-    face_overlay = OverlayRenderer(x=0, y=HEIGHT // 2) # Bottom-left
+    face_overlay = OverlayRenderer(x=0, y=0) # Top-left (shared)
     print("Dual landmark overlays enabled", flush=True)
 
     param_display_renderer = ParameterDisplayRenderer(width=WIDTH, height=HEIGHT)
@@ -575,7 +575,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 h_frame = np.zeros((OVERLAY_HEIGHT, OVERLAY_WIDTH, 4), dtype=np.uint8)
                 draw_landmarks(
                     h_frame,
-                    tracking_result.face,
+                    None, # Disable sparse face drawing
                     tracking_result.hands[0].landmarks if len(tracking_result.hands) > 0 else None,
                     tracking_result.hands[1].landmarks if len(tracking_result.hands) > 1 else None,
                     tracking_result.pose,
