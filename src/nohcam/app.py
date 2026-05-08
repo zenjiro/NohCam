@@ -451,8 +451,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             nose_ratio = (nose.y - forehead.y) / max(face_h, 0.001)
             angle_y = (0.45 - nose_ratio) * 300
 
-            # ロール: 目の高さ差
-            angle_z = (eye_l.y - eye_r.y) * 800
+            # ロール: 目の高さ差 (右傾き＝負、左傾き＝正)
+            angle_z = (eye_r.y - eye_l.y) * 800
 
             target_body_x += angle_x * 0.3
             target_body_y += angle_y * 0.3
@@ -476,8 +476,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             rw = pose[16]  # right wrist
 
             # 体の傾き (Pose)
-            # Roll: 肩の高さの差
-            target_body_z += (rs.y - ls.y) * 400.0
+            # Roll: 肩の高さの差 (右傾き＝負、左傾き＝正)
+            target_body_z += (ls.y - rs.y) * 400.0
             # Yaw: 肩の前後差 (Z座標)
             target_body_x += (ls.z - rs.z) * 150.0
             # Pitch: 肩の前後位置 (平均Z座標)
