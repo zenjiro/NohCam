@@ -21,10 +21,10 @@ class ParameterDisplayRenderer:
         self.param_values: Dict[int, float] = {}
         
         # Display settings
-        self.font_size = 12
+        self.font_size = 18
         self.bar_length = 15
-        self.line_height = 18
-        self.panel_width = 520
+        self.line_height = 27
+        self.panel_width = 780
         self.bg_color = (0, 0, 0, 0)  # Transparent
         
         # Cache for brightness detection
