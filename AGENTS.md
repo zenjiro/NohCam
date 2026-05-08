@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-NohCam is a Python application that creates virtual camera output with Live2D avatars driven by face, hand, and pose tracking via MediaPipe.
+NohCam is a Python application that drives Live2D avatars from face, hand, and pose tracking via MediaPipe.
 
 ## Tech Stack
 
@@ -12,22 +12,13 @@ NohCam is a Python application that creates virtual camera output with Live2D av
 - **GUI**: wxPython (Tracker Debugger)
 - **Rendering**: Pygame, PyOpenGL
 - **Live2D**: [live2d-py](https://github.com/Arkueid/live2d-py)
-- **Virtual Camera**: [pyvirtualcam](https://github.com/letmaik/pyvirtualcam)
+- **Camera I/O**: OpenCV (`cv2.VideoCapture`)
 
 ## Commands
 
 ```powershell
 # Install dependencies
 uv sync
-
-# Run tracker CLI (outputs JSON to stdout)
-uv run nohcam
-
-# Run tracker GUI (visual debugger)
-uv run nohcam --debug-landmarks
-
-# List available cameras
-uv run nohcam --list-cameras
 
 # Run Live2D viewer (interactive model selection)
 uv run nohcam
@@ -37,6 +28,12 @@ uv run nohcam --model path/to/model.model3.json
 
 # Specify camera for Live2D viewer
 uv run nohcam --model path/to/model.model3.json --camera 1
+
+# Run tracker GUI (visual debugger)
+uv run nohcam --debug-landmarks
+
+# List available cameras
+uv run nohcam --list-cameras
 ```
 
 ## Module Structure
@@ -70,6 +67,6 @@ D:\git\NohCam\
 ## Development Notes
 
 - **Tracking**: Uses MediaPipe Holistic Landmarker for simultaneous face, hand, and pose tracking.
-- **Live2D Integration**: Uses `live2d-py` (Cubism 3+ support). Parameters are mapped from MediaPipe landmarks in `app.py`.
-- **Performance**: OpenCV is used for camera capture (`cv2.VideoCapture`). The tracker runs in the same thread or can be orchestrated via CLI.
+- **Live2D Integration**: Uses `live2d-py` (Cubism 3+ support). Parameters (head/body/arms/expressions) are mapped from MediaPipe landmarks and blendshapes in `app.py`.
+- **Performance**: Camera frames are resized to 640x480 for tracking throughput.
 - **Dependencies**: Managed via `pyproject.toml` and `uv`. Always use `uv add <package>` to add new dependencies.
