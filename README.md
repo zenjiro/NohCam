@@ -9,12 +9,14 @@ Live2D viewer driven by MediaPipe face, hand, and pose tracking from webcam inpu
 - Facial blendshape mapping (blink, mouth open, smile)
 - Landmark debug GUI (`--debug-landmarks`)
 - Camera discovery and selection (`--list-cameras`, `--camera`)
+- Always shares the Live2D viewer output through Spout2 as the `NohCam` sender for SpoutCam
 - Processing resolution: 640x480 for tracking performance
 
 ## Requirements
 
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv)
+- SpoutCam / Spout2 runtime installed on Windows for virtual camera output
 
 ## Setup
 

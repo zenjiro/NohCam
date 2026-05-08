@@ -12,6 +12,7 @@ from pygame.locals import *
 import questionary
 
 from OpenGL.GL import *
+from SpoutGL import SpoutSender
 
 import live2d.v3 as live2d
 from .tracker import Tracker
@@ -22,6 +23,7 @@ from .parameter_display import ParameterDisplayRenderer
 
 WIDTH, HEIGHT = 1280, 720
 ARM_TRACKING_GAIN = 2.2
+SPOUT_SENDER_NAME = "NohCam"
 
 # Overlay dimensions (top-left 1/4 of screen)
 OVERLAY_WIDTH = WIDTH // 2  # 640
@@ -125,6 +127,78 @@ class OverlayRenderer:
             self.texture_id = None
 
 
+class SpoutFrameSender:
+    """Shares the rendered OpenGL back buffer with SpoutCam."""
+
+    def __init__(self, name: str, width: int, height: int):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.sender = SpoutSender()
+        self.texture_id = None
+        self._reported_send_failure = False
+
+        self.sender.setSenderName(name)
+        self._create_texture()
+        print(f"Spout sender '{name}' initialized ({width}x{height})", flush=True)
+
+    def _create_texture(self):
+        self.texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            self.width,
+            self.height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            None,
+        )
+        glBindTexture(GL_TEXTURE_2D, 0)
+
+    def send_current_frame(self):
+        if self.texture_id is None:
+            return
+
+        try:
+            glReadBuffer(GL_BACK)
+            glBindTexture(GL_TEXTURE_2D, self.texture_id)
+            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, self.width, self.height)
+            glBindTexture(GL_TEXTURE_2D, 0)
+
+            sent = self.sender.sendTexture(
+                self.texture_id,
+                GL_TEXTURE_2D,
+                self.width,
+                self.height,
+                True,
+                0,
+            )
+            if sent:
+                self.sender.setFrameSync(self.name)
+            elif not self._reported_send_failure:
+                print("WARNING: SpoutGL sendTexture returned False.", file=sys.stderr, flush=True)
+                self._reported_send_failure = True
+        except Exception as exc:
+            if not self._reported_send_failure:
+                print(f"WARNING: SpoutGL send failed: {exc}", file=sys.stderr, flush=True)
+                self._reported_send_failure = True
+        finally:
+            glBindTexture(GL_TEXTURE_2D, 0)
+
+    def cleanup(self):
+        if self.texture_id is not None:
+            glDeleteTextures([self.texture_id])
+            self.texture_id = None
+        self.sender.releaseSender()
+
+
 def find_all_models(start_dir: str = ".") -> list[str]:
     """Recursively find all .model3.json files."""
     models = []
@@ -211,6 +285,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
     print("Display mode set", flush=True)
     pygame.display.set_caption("Live2D Tracking - Arrow keys manual, T auto-track")
+    spout_sender = SpoutFrameSender(SPOUT_SENDER_NAME, WIDTH, HEIGHT)
 
     live2d.init()
     print("Live2D initialized", flush=True)
@@ -540,6 +615,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             except:
                 pygame.display.set_caption("(T=toggle auto, ESC=quit)")
 
+        spout_sender.send_current_frame()
         pygame.display.flip()
         clock.tick(30)
 
@@ -550,6 +626,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         face_overlay.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
+    spout_sender.cleanup()
     live2d.glRelease()
     live2d.dispose()
     pygame.quit()
