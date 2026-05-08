@@ -21,7 +21,7 @@ from .landmark_drawer import draw_landmarks
 from .parameter_display import ParameterDisplayRenderer
 
 
-WIDTH, HEIGHT = 1280, 720
+WIDTH, HEIGHT = 1920, 1080
 ARM_TRACKING_GAIN = 2.2
 SPOUT_SENDER_NAME = "NohCam"
 
