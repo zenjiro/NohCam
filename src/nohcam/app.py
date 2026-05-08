@@ -284,7 +284,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     print("PyGame initialized", flush=True)
     pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
     print("Display mode set", flush=True)
-    pygame.display.set_caption("Live2D Tracking - Arrow keys manual, T auto-track")
+    pygame.display.set_caption("NohCam - Live2D Tracking")
     spout_sender = SpoutFrameSender(SPOUT_SENDER_NAME, WIDTH, HEIGHT)
 
     live2d.init()
@@ -363,10 +363,6 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     if not (tracker.cap and tracker.cap.isOpened()):
         print("ERROR: Camera failed to open!", flush=True)
 
-    auto_track = True
-
-    manual_angle_x = 0.0
-    manual_angle_y = 0.0
     arm_l_value = 0.0
     arm_r_value = 0.0
     body_x_value = 0.0
@@ -391,20 +387,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             if event.type == QUIT:
                 running = False
             elif event.type == KEYDOWN:
-                if event.key == K_t:
-                    auto_track = not auto_track
-                    sys.stdout.write(f"T pressed! auto_track={auto_track}\n")
-                    sys.stdout.flush()
-                elif event.key == K_ESCAPE:
+                if event.key == K_ESCAPE:
                     running = False
-                elif event.key == K_LEFT:
-                    manual_angle_x -= 90
-                elif event.key == K_RIGHT:
-                    manual_angle_x += 90
-                elif event.key == K_UP:
-                    manual_angle_y -= 90
-                elif event.key == K_DOWN:
-                    manual_angle_y += 90
 
         keys = pygame.key.get_pressed()
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -414,13 +398,12 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
 
         # カメラから tracking 結果を取得
         tracking_result = None
-        if auto_track:
-            try:
-                tracking_result = tracker.process_frame()
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                print(f"Error: {e}", file=sys.stderr)
+        try:
+            tracking_result = tracker.process_frame()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error: {e}", file=sys.stderr)
 
         frame += 1
 
@@ -432,7 +415,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         target_body_y = 0.0
         target_body_z = 0.0
 
-        if auto_track and tracking_result and len(tracking_result.face) > 263:
+        if tracking_result and len(tracking_result.face) > 263:
             lm = tracking_result.face
             nose     = lm[4]    # 鼻先
             forehead = lm[10]   # 額
@@ -462,7 +445,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
                 model.SetIndexParamValue(param_angle_z, angle_z, 1.0)
 
         # MediaPipe Pose から腕・体パラメータを更新
-        if auto_track and tracking_result and len(tracking_result.pose) > 16:
+        if tracking_result and len(tracking_result.pose) > 16:
             pose = tracking_result.pose
             ls = pose[11]  # left shoulder
             rs = pose[12]  # right shoulder
@@ -502,27 +485,20 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             if param_arm_r is not None:
                 model.SetIndexParamValue(param_arm_r, arm_l_value, 1.0)
 
-        if auto_track:
-            # 体の傾きのジッタ低減
-            body_x_value = body_x_value + (target_body_x - body_x_value) * 0.25
-            body_y_value = body_y_value + (target_body_y - body_y_value) * 0.25
-            body_z_value = body_z_value + (target_body_z - body_z_value) * 0.25
+        # 体の傾きのジッタ低減
+        body_x_value = body_x_value + (target_body_x - body_x_value) * 0.25
+        body_y_value = body_y_value + (target_body_y - body_y_value) * 0.25
+        body_z_value = body_z_value + (target_body_z - body_z_value) * 0.25
 
-            if param_body_x is not None:
-                model.SetIndexParamValue(param_body_x, body_x_value, 1.0)
-            if param_body_y is not None:
-                model.SetIndexParamValue(param_body_y, body_y_value, 1.0)
-            if param_body_z is not None:
-                model.SetIndexParamValue(param_body_z, body_z_value, 1.0)
-
-        elif not auto_track:
-            if param_angle_x is not None:
-                model.SetIndexParamValue(param_angle_x, manual_angle_x, 1.0)
-            if param_angle_y is not None:
-                model.SetIndexParamValue(param_angle_y, manual_angle_y, 1.0)
+        if param_body_x is not None:
+            model.SetIndexParamValue(param_body_x, body_x_value, 1.0)
+        if param_body_y is not None:
+            model.SetIndexParamValue(param_body_y, body_y_value, 1.0)
+        if param_body_z is not None:
+            model.SetIndexParamValue(param_body_z, body_z_value, 1.0)
 
         # Apply Blendshapes from Face Landmarker
-        if auto_track and tracking_result and tracking_result.blendshapes:
+        if tracking_result and tracking_result.blendshapes:
             bs = tracking_result.blendshapes
             
             # Blink (MediaPipe: 0=open, 1=closed -> Live2D: 1=open, 0=closed)
@@ -607,9 +583,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
             try:
                 ax = model.GetParameterValue(param_angle_x)
                 ay = model.GetParameterValue(param_angle_y)
-                pygame.display.set_caption(f"AngleX={ax:.1f} AngleY={ay:.1f}  (T=toggle auto, ESC=quit)")
+                pygame.display.set_caption(f"NohCam - AngleX={ax:.1f} AngleY={ay:.1f} (ESC=quit)")
             except:
-                pygame.display.set_caption("(T=toggle auto, ESC=quit)")
+                pygame.display.set_caption("NohCam - Live2D Tracking (ESC=quit)")
 
         spout_sender.send_current_frame()
         pygame.display.flip()
