@@ -29,14 +29,17 @@ uv run nohcam --model path/to/model.model3.json
 # Specify camera for Live2D viewer
 uv run nohcam --model path/to/model.model3.json --camera 1
 
-# Specify background image
-uv run nohcam --background-image path/to/background.png
-
 # Run tracker GUI (visual debugger)
 uv run nohcam --debug-landmarks
 
 # List available cameras
 uv run nohcam --list-cameras
+
+# List available models
+uv run nohcam --list-models
+
+# Specify background image
+uv run nohcam --background path/to/background.png
 ```
 
 ## Module Structure
