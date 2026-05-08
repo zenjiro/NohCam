@@ -77,7 +77,6 @@ class FPSMeter:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--debug-landmarks", action="store_true", help="Launch tracker GUI with landmark visualization")
     parser.add_argument("--model", help="Path or name of .model3.json to launch Live2D viewer directly")
     parser.add_argument("--list-models", action="store_true", help="List available models (*.model3.json) in current directory and exit")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
@@ -111,11 +110,6 @@ def main():
     else:
         camera_id = find_default_camera_id()
 
-    # If --debug-landmarks is requested, launch the GUI
-    if args.debug_landmarks:
-        from .gui import main as gui_main
-        gui_main(camera_id=camera_id)
-        return
 
     # If a specific model is provided, launch Live2D viewer with it
     if args.model:
