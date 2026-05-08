@@ -10,6 +10,7 @@ Live2D viewer driven by MediaPipe face, hand, and pose tracking from webcam inpu
 - Landmark debug GUI (`--debug-landmarks`)
 - Camera discovery and selection (`--list-cameras`, `--camera`)
 - Always shares the Live2D viewer output through Spout2 as the `NohCam` sender for SpoutCam
+- Custom background image support (`-b`, `--background-image`) with auto-cropping to 16:9
 - Processing resolution: 640x480 for tracking performance
 
 ## Requirements
@@ -60,6 +61,13 @@ You can list and select specific camera devices by their index.
   ```powershell
   uv run nohcam --camera 1
   ```
+
+### 5. Background Image
+Specify a path to an image file to use as the background. The image will be automatically cropped and centered to fit the 16:9 aspect ratio.
+
+```powershell
+uv run nohcam --background-image path/to/background.png
+```
 
 **Default Behavior:**
 If no camera is specified, the application attempts to automatically select the first non-virtual camera. If you have multiple cameras and the wrong one is selected, use `--list-cameras` to find the correct index and specify it with `--camera`.

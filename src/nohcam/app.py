@@ -199,6 +199,109 @@ class SpoutFrameSender:
         self.sender.releaseSender()
 
 
+class BackgroundImageRenderer:
+    """Loads, crops, and renders a background image in OpenGL."""
+
+    def __init__(self, image_path: str):
+        self.image_path = image_path
+        self.texture_id = None
+        self.img_data = None
+        self._load_and_crop()
+
+    def _load_and_crop(self):
+        img = cv2.imread(self.image_path)
+        if img is None:
+            print(f"ERROR: Could not load background image: {self.image_path}", file=sys.stderr)
+            return
+
+        h, w = img.shape[:2]
+        target_aspect = WIDTH / HEIGHT
+        current_aspect = w / h
+
+        if current_aspect > target_aspect:
+            # Too wide, crop sides
+            new_w = int(h * target_aspect)
+            offset = (w - new_w) // 2
+            img = img[:, offset : offset + new_w]
+        elif current_aspect < target_aspect:
+            # Too tall, crop top/bottom
+            new_h = int(w / target_aspect)
+            offset = (h - new_h) // 2
+            img = img[offset : offset + new_h, :]
+
+        # Resize to full screen dimensions
+        img = cv2.resize(img, (WIDTH, HEIGHT))
+        # Convert BGR to RGB for OpenGL
+        self.img_data = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    def _create_texture(self):
+        if self.img_data is None:
+            return
+
+        self.texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            WIDTH,
+            HEIGHT,
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            self.img_data,
+        )
+        glBindTexture(GL_TEXTURE_2D, 0)
+        # Free CPU memory after upload
+        self.img_data = None
+
+    def render(self):
+        if self.texture_id is None:
+            self._create_texture()
+        
+        if self.texture_id is None:
+            return
+
+        glPushAttrib(GL_ALL_ATTRIB_BITS)
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_BLEND)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, WIDTH, HEIGHT, 0, -1, 1)
+        
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        glBegin(GL_QUADS)
+        glColor3f(1.0, 1.0, 1.0)
+        glTexCoord2f(0, 0); glVertex2f(0, 0)
+        glTexCoord2f(1, 0); glVertex2f(WIDTH, 0)
+        glTexCoord2f(1, 1); glVertex2f(WIDTH, HEIGHT)
+        glTexCoord2f(0, 1); glVertex2f(0, HEIGHT)
+        glEnd()
+
+        glPopMatrix()
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopAttrib()
+
+    def cleanup(self):
+        if self.texture_id is not None:
+            glDeleteTextures([self.texture_id])
+            self.texture_id = None
+
+
 def find_all_models(start_dir: str = ".") -> list[str]:
     """Recursively find all .model3.json files."""
     models = []
@@ -263,7 +366,7 @@ def _find_default_model() -> str:
     )
 
 
-def main(model_path: Optional[str] = None, camera_id: int = 0):
+def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: Optional[str] = None):
     if model_path is None:
         model_path = _find_default_model()
     model_path = os.path.normpath(model_path)
@@ -378,6 +481,11 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
     param_display_renderer.set_parameters(model, model_path=model_path)
     print("Parameter display enabled", flush=True)
 
+    background_renderer = None
+    if background_path:
+        background_renderer = BackgroundImageRenderer(background_path)
+        print(f"Background image enabled: {background_path}", flush=True)
+
     clock = pygame.time.Clock()
     running = True
     frame = 0
@@ -408,6 +516,10 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         frame += 1
 
         glClear(GL_COLOR_BUFFER_BIT)
+        
+        if background_renderer:
+            background_renderer.render()
+
         model.Update()
 
         # Update() 後にパラメータを設定（LoadParameters() のリセットを回避）
@@ -598,6 +710,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0):
         face_overlay.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
+    if background_renderer:
+        background_renderer.cleanup()
     spout_sender.cleanup()
     live2d.glRelease()
     live2d.dispose()
