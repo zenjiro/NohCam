@@ -499,6 +499,12 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
     running = True
     frame = 0
 
+    # Model transformation state
+    model_scale = 1.0
+    model_offset_y = 0.0
+    dragging = False
+    last_mouse_y = 0
+
     while running:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -506,8 +512,55 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             elif event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
+                
+                # Ctrl + 0 (Reset) - Keep as single event
+                if pygame.key.get_mods() & KMOD_CTRL:
+                    if event.key == K_0:
+                        model_scale = 1.0
+                        model_offset_y = 0.0
+            
+            elif event.type == MOUSEBUTTONDOWN:
+                if event.button == 1: # Left click drag
+                    dragging = True
+                    last_mouse_y = event.pos[1]
+                elif event.button == 4: # Wheel Up
+                    model_scale += 0.05
+                elif event.button == 5: # Wheel Down
+                    model_scale -= 0.05
+            
+            elif event.type == MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragging = False
+            
+            elif event.type == MOUSEMOTION:
+                if dragging:
+                    dy = event.pos[1] - last_mouse_y
+                    # Normalized offset (usually -1.0 to 1.0 for the screen height)
+                    model_offset_y -= dy / HEIGHT * 2.0
+                    last_mouse_y = event.pos[1]
+            
+            elif event.type == MOUSEWHEEL:
+                model_scale += event.y * 0.05
+        
+        # Clamp scale
+        model_scale = clamp(model_scale, 0.1, 10.0)
 
         keys = pygame.key.get_pressed()
+        mods = pygame.key.get_mods()
+
+        # Continuous Zoom with Ctrl
+        if mods & KMOD_CTRL:
+            if keys[K_SEMICOLON] or keys[K_PLUS]:
+                model_scale += 0.02
+            if keys[K_MINUS]:
+                model_scale -= 0.02
+        
+        # Continuous Move with Arrow keys
+        if keys[K_UP]:
+            model_offset_y += 0.02
+        if keys[K_DOWN]:
+            model_offset_y -= 0.02
+
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         # Initialize background_frames for display contrast
@@ -530,6 +583,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         if background_renderer:
             background_renderer.render()
 
+        model.SetScale(model_scale)
+        model.SetOffset(0, model_offset_y)
         model.Update()
 
         # Update() 後にパラメータを設定（LoadParameters() のリセットを回避）
