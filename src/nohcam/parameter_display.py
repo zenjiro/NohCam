@@ -6,6 +6,26 @@ from OpenGL.GL import *
 from typing import Optional, Dict, List
 
 
+def get_monospace_font(font_size: int):
+    """Try to load a monospace font, fall back to default."""
+    # Common Windows monospace fonts
+    font_paths = [
+        "C:/Windows/Fonts/consola.ttf", # Consolas
+        "C:/Windows/Fonts/cour.ttf",    # Courier New
+        "C:/Windows/Fonts/lucon.ttf",   # Lucida Console
+        "consolas.ttf",
+        "courier.ttf"
+    ]
+    
+    for path in font_paths:
+        try:
+            return ImageFont.truetype(path, font_size)
+        except OSError:
+            continue
+    
+    return ImageFont.load_default()
+
+
 class ParameterDisplayRenderer:
     """Renders Live2D parameter values with bar graphs in the top-right corner."""
 
@@ -148,26 +168,7 @@ class ParameterDisplayRenderer:
         img = Image.new("RGBA", (self.panel_width, panel_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         
-        # Try to load a monospace font, fall back to default
-        # Common Windows monospace fonts
-        font_paths = [
-            "C:/Windows/Fonts/consola.ttf", # Consolas
-            "C:/Windows/Fonts/cour.ttf",    # Courier New
-            "C:/Windows/Fonts/lucon.ttf",   # Lucida Console
-            "consolas.ttf",
-            "courier.ttf"
-        ]
-        
-        font = None
-        for path in font_paths:
-            try:
-                font = ImageFont.truetype(path, self.font_size)
-                break
-            except OSError:
-                continue
-        
-        if font is None:
-            font = ImageFont.load_default()
+        font = get_monospace_font(self.font_size)
         
         y_offset = 5
         
@@ -272,6 +273,99 @@ class ParameterDisplayRenderer:
         glEnable(GL_DEPTH_TEST)
         
         # Restore OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
+    def cleanup(self) -> None:
+        """Delete the texture."""
+        if self.texture_id is not None:
+            glDeleteTextures([self.texture_id])
+            self.texture_id = None
+
+
+class FPSDisplayRenderer:
+    """Renders current FPS in the bottom-right corner."""
+    
+    def __init__(self, width: int = 1280, height: int = 720, margin: int = 15):
+        self.width = width
+        self.height = height
+        self.margin = margin
+        self.texture_id = None
+        self.font_size = 27
+        self.panel_width = 150
+        self.panel_height = 40
+        self.font = get_monospace_font(self.font_size)
+        
+    def render_to_image(self, fps: float, text_color: tuple) -> Image.Image:
+        """Render FPS text to PIL Image."""
+        img = Image.new("RGBA", (self.panel_width, self.panel_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        
+        line = f"FPS: {int(round(fps))}"
+        draw.text((5, 5), line, fill=text_color, font=self.font)
+        return img
+
+    def create_texture(self, width: int, height: int) -> int:
+        """Create an OpenGL texture."""
+        texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, None)
+        glBindTexture(GL_TEXTURE_2D, 0)
+        return texture_id
+
+    def update_texture(self, pil_image: Image.Image) -> None:
+        """Update OpenGL texture with PIL image."""
+        width, height = pil_image.size
+
+        if self.texture_id is None:
+            self.texture_id = self.create_texture(width, height)
+
+        img_array = np.array(pil_image, dtype=np.uint8)
+
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, img_array)
+        glBindTexture(GL_TEXTURE_2D, 0)
+        glFlush()
+
+    def render(self, screen_width: int, screen_height: int) -> None:
+        """Render the FPS display as a 2D overlay in bottom-right corner."""
+        if self.texture_id is None:
+            return
+        
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, screen_width, screen_height, 0, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        
+        glDisable(GL_DEPTH_TEST)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.texture_id)
+        
+        # Position in bottom-right corner
+        x = screen_width - self.panel_width - self.margin
+        y = screen_height - self.panel_height - self.margin
+        
+        glBegin(GL_QUADS)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glTexCoord2f(0, 0); glVertex2f(x, y)
+        glTexCoord2f(1, 0); glVertex2f(x + self.panel_width, y)
+        glTexCoord2f(1, 1); glVertex2f(x + self.panel_width, y + self.panel_height)
+        glTexCoord2f(0, 1); glVertex2f(x, y + self.panel_height)
+        glEnd()
+        
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)
+        glEnable(GL_DEPTH_TEST)
+        
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         glMatrixMode(GL_MODELVIEW)

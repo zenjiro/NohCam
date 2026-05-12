@@ -18,7 +18,7 @@ import live2d.v3 as live2d
 from .tracker import Tracker
 from live2d.v3.params import StandardParams
 from .landmark_drawer import draw_landmarks
-from .parameter_display import ParameterDisplayRenderer
+from .parameter_display import ParameterDisplayRenderer, FPSDisplayRenderer
 
 
 WIDTH, HEIGHT = 1920, 1080
@@ -487,6 +487,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
     param_display_renderer.set_parameters(model, model_path=model_path)
     print("Parameter display enabled", flush=True)
 
+    fps_display_renderer = FPSDisplayRenderer(width=WIDTH, height=HEIGHT)
+    print("FPS display enabled", flush=True)
+
     background_renderer = None
     if background_path:
         background_renderer = BackgroundImageRenderer(background_path)
@@ -507,8 +510,9 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         keys = pygame.key.get_pressed()
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
-        # Initialize background_frame for parameter display
-        background_frame = None
+        # Initialize background_frames for display contrast
+        param_bg_frame = None
+        fps_bg_frame = None
 
         # カメラから tracking 結果を取得
         tracking_result = None
@@ -646,15 +650,21 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
 
         model.Draw()
 
-        # Sample background color from OpenGL buffer for parameter display text color
+        # Sample background color from OpenGL buffer for display text color
         try:
-            # Read a small region from the OpenGL framebuffer to detect background brightness
-            # Sample from top-right corner (opposite of parameter display)
-            sample_x, sample_y = WIDTH - 100, 50
+            # 1. Top-right for parameter display
+            # glReadPixels uses bottom-left as origin
+            tr_sample_x, tr_sample_y = WIDTH - 150, HEIGHT - 150
             sample_w, sample_h = 80, 80
-            pixel_data = glReadPixels(sample_x, sample_y, sample_w, sample_h, GL_RGBA, GL_UNSIGNED_BYTE)
-            if pixel_data is not None:
-                background_frame = np.frombuffer(pixel_data, dtype=np.uint8).reshape((sample_h, sample_w, 4))
+            tr_pixel_data = glReadPixels(tr_sample_x, tr_sample_y, sample_w, sample_h, GL_RGBA, GL_UNSIGNED_BYTE)
+            if tr_pixel_data is not None:
+                param_bg_frame = np.frombuffer(tr_pixel_data, dtype=np.uint8).reshape((sample_h, sample_w, 4))
+            
+            # 2. Bottom-right for FPS display
+            br_sample_x, br_sample_y = WIDTH - 150, 50
+            br_pixel_data = glReadPixels(br_sample_x, br_sample_y, sample_w, sample_h, GL_RGBA, GL_UNSIGNED_BYTE)
+            if br_pixel_data is not None:
+                fps_bg_frame = np.frombuffer(br_pixel_data, dtype=np.uint8).reshape((sample_h, sample_w, 4))
         except Exception:
             pass
 
@@ -692,10 +702,23 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         # Render parameter display
         if param_display_renderer:
             param_display_renderer.update_parameter_values(model)
-            text_color = param_display_renderer.detect_background_brightness(background_frame)
+            text_color = param_display_renderer.detect_background_brightness(param_bg_frame)
             param_image = param_display_renderer.render_to_image(text_color)
             param_display_renderer.update_texture(param_image)
             param_display_renderer.render(WIDTH, HEIGHT)
+
+        # Render FPS display
+        if fps_display_renderer:
+            fps = clock.get_fps()
+            # Reuse ParameterDisplayRenderer's logic for color detection if possible, 
+            # but since it's a separate class instance we'll just use a helper or the same logic
+            # For simplicity, FPSDisplayRenderer doesn't have its own detector yet, 
+            # so we'll use param_display_renderer's detector or just implement it.
+            # Actually, let's just use the same logic.
+            fps_text_color = param_display_renderer.detect_background_brightness(fps_bg_frame)
+            fps_image = fps_display_renderer.render_to_image(fps, fps_text_color)
+            fps_display_renderer.update_texture(fps_image)
+            fps_display_renderer.render(WIDTH, HEIGHT)
 
 
         spout_sender.send_current_frame()
@@ -709,6 +732,8 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         face_overlay.cleanup()
     if param_display_renderer:
         param_display_renderer.cleanup()
+    if fps_display_renderer:
+        fps_display_renderer.cleanup()
     if background_renderer:
         background_renderer.cleanup()
     spout_sender.cleanup()
