@@ -1,6 +1,7 @@
 import sys
 import os
 import warnings
+from dataclasses import dataclass
 from typing import Optional
 # warnings.filterwarnings("ignore")
 print("Imports successful", flush=True)
@@ -24,6 +25,14 @@ from .parameter_display import ParameterDisplayRenderer, FPSDisplayRenderer
 WIDTH, HEIGHT = 1920, 1080
 ARM_TRACKING_GAIN = 2.2
 SPOUT_SENDER_NAME = "NohCam"
+MODEL_SCALE_DEFAULT = 1.0
+MODEL_SCALE_MIN = 0.25
+MODEL_SCALE_MAX = 4.0
+MODEL_SCALE_STEP = 1.12
+MODEL_OFFSET_MIN = -3.0
+MODEL_OFFSET_MAX = 3.0
+MODEL_OFFSET_PER_PIXEL = 2.0 / HEIGHT
+MODEL_KEYBOARD_MOVE_PIXELS = 12.0
 
 # Overlay dimensions (top-left 1/4 of screen)
 OVERLAY_WIDTH = WIDTH // 2  # 640
@@ -34,6 +43,77 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+@dataclass
+class ManualModelTransform:
+    """Tracks manual zoom and vertical offset for the Live2D model."""
+
+    scale: float = MODEL_SCALE_DEFAULT
+    offset_y: float = 0.0
+    dragging: bool = False
+
+    def zoom(self, wheel_delta: float) -> None:
+        if wheel_delta == 0:
+            return
+        self.scale = clamp(
+            self.scale * (MODEL_SCALE_STEP ** wheel_delta),
+            MODEL_SCALE_MIN,
+            MODEL_SCALE_MAX,
+        )
+
+    def move_by_pixels(self, pixel_delta_y: float) -> None:
+        # Positive pixel deltas mean the pointer moved down.
+        self.offset_y = clamp(
+            self.offset_y - (pixel_delta_y * MODEL_OFFSET_PER_PIXEL),
+            MODEL_OFFSET_MIN,
+            MODEL_OFFSET_MAX,
+        )
+
+    def reset(self) -> None:
+        self.scale = MODEL_SCALE_DEFAULT
+        self.offset_y = 0.0
+        self.dragging = False
+
+    def apply(self, model) -> None:
+        model.SetScale(self.scale)
+        model.SetOffset(0.0, self.offset_y)
+
+    def start_drag(self) -> None:
+        self.dragging = True
+
+    def stop_drag(self) -> None:
+        self.dragging = False
+
+
+def _is_ctrl_pressed(mods: int) -> bool:
+    return bool(mods & KMOD_CTRL)
+
+
+def _is_zoom_in_key(key: int) -> bool:
+    candidates = (
+        globals().get("K_PLUS"),
+        globals().get("K_EQUALS"),
+        globals().get("K_SEMICOLON"),
+        globals().get("K_KP_PLUS"),
+    )
+    return key in candidates
+
+
+def _is_zoom_out_key(key: int) -> bool:
+    candidates = (
+        globals().get("K_MINUS"),
+        globals().get("K_KP_MINUS"),
+    )
+    return key in candidates
+
+
+def _is_reset_key(key: int) -> bool:
+    candidates = (
+        globals().get("K_0"),
+        globals().get("K_KP0"),
+    )
+    return key in candidates
 
 
 class OverlayRenderer:
@@ -496,6 +576,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         print(f"Background image enabled: {background_path}", flush=True)
 
     clock = pygame.time.Clock()
+    manual_transform = ManualModelTransform()
     running = True
     frame = 0
 
@@ -506,9 +587,32 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             elif event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
+                elif _is_ctrl_pressed(event.mod) and _is_reset_key(event.key):
+                    manual_transform.reset()
+                elif _is_ctrl_pressed(event.mod) and _is_zoom_in_key(event.key):
+                    manual_transform.zoom(1.0)
+                elif _is_ctrl_pressed(event.mod) and _is_zoom_out_key(event.key):
+                    manual_transform.zoom(-1.0)
+            elif event.type == MOUSEWHEEL:
+                manual_transform.zoom(event.y)
+            elif event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    manual_transform.start_drag()
+                elif event.button == 4:
+                    manual_transform.zoom(1.0)
+                elif event.button == 5:
+                    manual_transform.zoom(-1.0)
+            elif event.type == MOUSEBUTTONUP:
+                if event.button == 1:
+                    manual_transform.stop_drag()
+            elif event.type == MOUSEMOTION and manual_transform.dragging:
+                manual_transform.move_by_pixels(event.rel[1])
 
         keys = pygame.key.get_pressed()
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        if keys[K_UP] and not keys[K_DOWN]:
+            manual_transform.move_by_pixels(-MODEL_KEYBOARD_MOVE_PIXELS)
+        elif keys[K_DOWN] and not keys[K_UP]:
+            manual_transform.move_by_pixels(MODEL_KEYBOARD_MOVE_PIXELS)
 
         # Initialize background_frames for display contrast
         param_bg_frame = None
@@ -648,6 +752,7 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             if param_mouth_form is not None:
                 model.SetIndexParamValue(param_mouth_form, mouth_form, 1.0)
 
+        manual_transform.apply(model)
         model.Draw()
 
         # Sample background color from OpenGL buffer for display text color
@@ -719,7 +824,6 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
             fps_image = fps_display_renderer.render_to_image(fps, fps_text_color)
             fps_display_renderer.update_texture(fps_image)
             fps_display_renderer.render(WIDTH, HEIGHT)
-
 
         spout_sender.send_current_frame()
         pygame.display.flip()
