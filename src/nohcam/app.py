@@ -513,21 +513,11 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
                 if event.key == K_ESCAPE:
                     running = False
                 
-                # Ctrl + Keys
+                # Ctrl + 0 (Reset) - Keep as single event
                 if pygame.key.get_mods() & KMOD_CTRL:
-                    if event.key == K_SEMICOLON or event.key == K_PLUS: # Japanese layout ';' is used for '+'
-                        model_scale += 0.05
-                    elif event.key == K_MINUS:
-                        model_scale -= 0.05
-                    elif event.key == K_0:
+                    if event.key == K_0:
                         model_scale = 1.0
                         model_offset_y = 0.0
-                
-                # Arrow keys
-                if event.key == K_UP:
-                    model_offset_y += 0.05
-                elif event.key == K_DOWN:
-                    model_offset_y -= 0.05
             
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1: # Left click drag
@@ -556,6 +546,21 @@ def main(model_path: Optional[str] = None, camera_id: int = 0, background_path: 
         model_scale = clamp(model_scale, 0.1, 10.0)
 
         keys = pygame.key.get_pressed()
+        mods = pygame.key.get_mods()
+
+        # Continuous Zoom with Ctrl
+        if mods & KMOD_CTRL:
+            if keys[K_SEMICOLON] or keys[K_PLUS]:
+                model_scale += 0.02
+            if keys[K_MINUS]:
+                model_scale -= 0.02
+        
+        # Continuous Move with Arrow keys
+        if keys[K_UP]:
+            model_offset_y += 0.02
+        if keys[K_DOWN]:
+            model_offset_y -= 0.02
+
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         # Initialize background_frames for display contrast
