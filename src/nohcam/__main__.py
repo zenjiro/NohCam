@@ -76,7 +76,16 @@ class FPSMeter:
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="NohCam Live2D viewer and tracker.",
+        epilog=(
+            "Viewer controls:\n"
+            "  - Mouse wheel or Ctrl++ / Ctrl+; / Ctrl+-: zoom in and out\n"
+            "  - Left-drag or Up / Down: move the model vertically\n"
+            "  - Ctrl+0: reset manual zoom and vertical offset"
+        ),
+    )
     parser.add_argument("--model", help="Path or name of .model3.json to launch Live2D viewer directly")
     parser.add_argument("--list-models", action="store_true", help="List available models (*.model3.json) in current directory and exit")
     parser.add_argument("--list-cameras", action="store_true", help="List available cameras and exit")
